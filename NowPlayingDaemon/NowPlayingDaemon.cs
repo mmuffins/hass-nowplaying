@@ -4,24 +4,28 @@
 // global using NetDaemon.AppModel;
 // global using NetDaemon.HassModel;
 // using System.Collections.Generic;
-// using System.Linq;
 // using NetDaemon.Client.HomeAssistant.Model;
 using NetDaemon.HassModel.Entities;
 using hass_mpris.HassClasses;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace NowPlayingDaemon;
 
-/// <summary>
-///     Hello world showcase using the new HassModel API
-/// </summary>
+
 [NetDaemonApp]
 public class NowPlaying
 {
-    public NowPlaying(IHaContext haContext)
+    private readonly ILogger<NowPlaying> logger;
+
+    public NowPlaying(IHaContext haContext, ILogger<NowPlaying> logger)
     {
+        this.logger = logger;
+        logger.LogInformation("This is a log message from MyService.");
+
         // ha.CallService("notify", "persistent_notification", data: new {message = "Notify meXX", title = "Hello world!"});
 
+        // logger.LogInformation("test");
         var haPlayer = new Entity<MediaPlayerAttributes>(haContext, "media_player.sonos_arc");
 
 
@@ -38,6 +42,7 @@ public class NowPlaying
         Console.WriteLine(haPlayer.Attributes?.MediaArtist);
         Console.WriteLine(haPlayer.Attributes?.EntityPicture);
         Console.WriteLine(haPlayer.State);
-        haPlayerX.MediaPlayPause();
+        
+        // haPlayerX.MediaPlayPause();
     }
 }
