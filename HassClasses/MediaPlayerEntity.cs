@@ -21,12 +21,22 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using NetDaemon.HassModel.Entities;
 
 namespace hass_mpris.HassClasses;
+
+public partial class MediaPlayerEntities
+{
+    private readonly IHaContext _haContext;
+    public MediaPlayerEntities(IHaContext haContext)
+    {
+        _haContext = haContext;
+    }
+}
 
 public partial record MediaPlayerEntity : Entity<MediaPlayerEntity, EntityState<MediaPlayerAttributes>, MediaPlayerAttributes>, IMediaPlayerEntityCore
 {
