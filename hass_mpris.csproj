@@ -7,6 +7,12 @@
         <Nullable>enable</Nullable>
         <RootNamespace>hass_mpris</RootNamespace>
     </PropertyGroup>
+
+    <PropertyGroup>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>    
+    </PropertyGroup>
+
     
     <ItemGroup>
         <None Update="$(MSBuildProjectDir)appsettings.Development.json">
@@ -36,5 +42,9 @@
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
         <PackageReference Include="Serilog.AspNetCore" Version="8.0.1" />
         <PackageReference Include="System.Reactive" Version="6.0.1" />
+    </ItemGroup>
+        
+    <ItemGroup>
+      <ProjectReference Include="MPRISInterface\MPRISInterface.csproj" />
     </ItemGroup>
 </Project>

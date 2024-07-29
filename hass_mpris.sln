@@ -5,6 +5,8 @@ VisualStudioVersion = 17.5.002.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "hass_mpris", "hass_mpris.csproj", "{E2402296-1580-4DDF-A9DD-1B2EBFD51EBC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MPRISInterface", "MPRISInterface\MPRISInterface.csproj", "{BF30EB41-953F-4664-9F96-F07B749FA383}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{E2402296-1580-4DDF-A9DD-1B2EBFD51EBC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E2402296-1580-4DDF-A9DD-1B2EBFD51EBC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E2402296-1580-4DDF-A9DD-1B2EBFD51EBC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF30EB41-953F-4664-9F96-F07B749FA383}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF30EB41-953F-4664-9F96-F07B749FA383}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF30EB41-953F-4664-9F96-F07B749FA383}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF30EB41-953F-4664-9F96-F07B749FA383}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
