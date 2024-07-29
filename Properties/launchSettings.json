@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "hass_mpris": {
+      "commandName": "Project",
+      "workingDirectory": "$(ProjectDir)",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
