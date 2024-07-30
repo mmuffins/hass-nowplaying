@@ -25,6 +25,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using NetDaemon.HassModel;
 using NetDaemon.HassModel.Entities;
 
 namespace hass_mpris.HassClasses;

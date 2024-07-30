@@ -6,7 +6,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/hass_mpris.dll",
+            "program": "${workspaceFolder}/NowPlayingDaemon/bin/Debug/net8.0/NowPlayingDaemon.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             "env": {
