@@ -24,7 +24,7 @@ try
             services
                 //  .AddNetDaemonStateManager()
                 //  .AddNetDaemonScheduler()
-                .AddAppsFromAssembly(Assembly.GetExecutingAssembly())
+                // .AddAppsFromAssembly(Assembly.GetExecutingAssembly())
                 .AddSingleton<DBusConnectionManager>()
                 .AddHostedService<Worker>()
                 // .AddSingleton<INowPlaying, NowPlaying>()
