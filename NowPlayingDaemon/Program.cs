@@ -1,26 +1,17 @@
-// using NowPlayingDaemon;
-
-// var builder = Host.CreateApplicationBuilder(args);
-// builder.Services.AddHostedService<Worker>();
-
-// var host = builder.Build();
-// host.Run();
-
-
-
-
-
 using System.Reflection;
 using Microsoft.Extensions.Hosting;
+using MPRISInterface;
 using NetDaemon.AppModel;
 using NetDaemon.Extensions.Logging;
 using NetDaemon.Extensions.Scheduler;
 using NetDaemon.Extensions.Tts;
 using NetDaemon.Runtime;
+using NowPlayingDaemon;
 // Add next line if using code generator
 //using HomeAssistantGenerated;
 
 #pragma warning disable CA1812
+
 
 try
 {
@@ -28,12 +19,17 @@ try
         .UseNetDaemonAppSettings()
         .UseNetDaemonDefaultLogging()
         .UseNetDaemonRuntime()
-        .UseNetDaemonTextToSpeech()
+        // .UseNetDaemonTextToSpeech()
         .ConfigureServices((_, services) =>
             services
+                //  .AddNetDaemonStateManager()
+                //  .AddNetDaemonScheduler()
                 .AddAppsFromAssembly(Assembly.GetExecutingAssembly())
-                .AddNetDaemonStateManager()
-                .AddNetDaemonScheduler()
+                .AddSingleton<DBusConnectionManager>()
+                .AddHostedService<Worker>()
+                // .AddSingleton<INowPlaying, NowPlaying>()
+                // .AddSingleton<IMprisMediaPlayerService, MprisMediaPlayer>()
+                
                 // Add next line if using code generator
                 // .AddHomeAssistantGenerated()
         )
