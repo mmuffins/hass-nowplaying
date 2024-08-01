@@ -34,11 +34,11 @@ public class Worker : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
 
-        await _mprisPlayer.RegisterPlayer(_connectionManager.Connection);
+        await _mprisPlayer.RegisterPlayer(_connectionManager.Connection, "testPlayer", "testplayer", false);
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            await Task.Delay(2000, stoppingToken);
+            await Task.Delay(8000, stoppingToken);
 
             await using var scope = _scopeFactory.CreateAsyncScope();
 

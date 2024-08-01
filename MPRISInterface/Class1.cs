@@ -31,7 +31,7 @@ namespace MPRISInterface
     public interface IMprisMediaPlayer
     {
         Task UpdateMetadata(string trackId, long length, string[] artist, string title, string album);
-        Task RegisterPlayer(Connection connection);
+        Task RegisterPlayer(Connection connection, string identity, string desktopEntry, bool canControl);
     }
 
 
@@ -49,18 +49,17 @@ namespace MPRISInterface
         public string[] SupportedUriSchemes;
         public string[] SupportedMimeTypes;
 
-        public MprisMediaPlayerProperties(string identity, string desktopEntry)
+        public MprisMediaPlayerProperties()
         {
             CanQuit = false;
             CanRaise = false;
             HasTrackList = false;
             Fullscreen = false;
             CanSetFullscreen = false;
+            Identity = "";
+            DesktopEntry = "";
             SupportedUriSchemes = Array.Empty<string>();
             SupportedMimeTypes = Array.Empty<string>();
-
-            Identity = identity;
-            DesktopEntry = desktopEntry;
         }
     }
 
@@ -99,9 +98,9 @@ namespace MPRISInterface
         public double MaximumRate;
         public IDictionary<string, object> Metadata;
 
-        public MprisPlayerProperties(bool canControl)
+        public MprisPlayerProperties()
         {
-            CanPlay = true;
+            CanPlay = false;
             CanPause = false;
             CanGoPrevious = false;
             CanGoNext = false;
@@ -114,6 +113,7 @@ namespace MPRISInterface
             Position = 0;
             MinimumRate = 0;
             MaximumRate = 0;
+            CanControl = false;
             Metadata = new Dictionary<string, object>
             {
                 {"mpris:trackid", "0"},
@@ -122,8 +122,6 @@ namespace MPRISInterface
                 {"xesam:title", ""},
                 {"xesam:album", ""}
             };
-
-            CanControl = canControl;
         }
     }
 
@@ -162,11 +160,11 @@ namespace MPRISInterface
         public event Action<PropertyChanges> OnPropertiesChanged = delegate {};
 
 
-        public MprisMediaPlayer(ILogger<MprisMediaPlayer> logger, string identity = "", string desktopEntry = "", bool canControl = false)
+        public MprisMediaPlayer(ILogger<MprisMediaPlayer> logger)
         {
             this.logger = logger;
-            mprisMediaPlayerProperties = new MprisMediaPlayerProperties(identity, desktopEntry);
-            mprisPlayerProperties = new MprisPlayerProperties(canControl);
+            mprisMediaPlayerProperties = new MprisMediaPlayerProperties();
+            mprisPlayerProperties = new MprisPlayerProperties();
         }
 
         Task<MprisMediaPlayerProperties> IMediaPlayer2.GetAllAsync(){
@@ -191,7 +189,7 @@ namespace MPRISInterface
             return Task.FromResult<object>(value);
         }
 
-        public async Task RegisterPlayer(Connection connection){
+        public async Task RegisterPlayer(Connection connection, string identity, string desktopEntry, bool canControl){
 
             mprisMediaPlayerProperties.Identity = "delmeplayer";
             mprisMediaPlayerProperties.DesktopEntry = "DELETE ME PLAYER";
@@ -344,25 +342,28 @@ namespace MPRISInterface
 
         public Task RaiseAsync()
         {
+            logger.LogDebug("RaiseAsync called.");
             throw new NotImplementedException();
             return Task.CompletedTask;
         }
 
         public Task QuitAsync()
         {
+            logger.LogDebug("QuitAsync called.");
             throw new NotImplementedException();
             return Task.CompletedTask;
         }
 
         public Task PlayAsync()
         {
-            logger.LogInformation("PlayAsync");
+            logger.LogDebug("PlayAsync called.");
             throw new NotImplementedException();
             return Task.CompletedTask;
         }
 
         public Task PauseAsync()
         {
+            logger.LogDebug("PauseAsync called.");
             logger.LogInformation("PauseAsync");
             throw new NotImplementedException();
             return Task.CompletedTask;
@@ -370,41 +371,52 @@ namespace MPRISInterface
 
         public Task StopAsync()
         {
+            logger.LogDebug("StopAsync called.");
             throw new NotImplementedException();
             return Task.CompletedTask;
         }
 
         public Task PlayPauseAsync()
         {
-            logger.LogInformation("PlayPause");
+            logger.LogDebug("PlayPauseAsync called.");
+            if(!mprisPlayerProperties.CanPause){
+                logger.LogError("PlayPause operation is not allowed.");
+                throw new DBusException("org.mpris.MediaPlayer2.Player.Error.NotAllowed", "PlayPause is not allowed.");
+            }
             throw new NotImplementedException();
             return Task.CompletedTask;
         }
 
         public Task PreviousAsync()
         {
+            logger.LogDebug("PreviousAsync called.");
+
             throw new NotImplementedException();
             return Task.CompletedTask;
         }
 
         public Task NextAsync()
         {
+            logger.LogDebug("NextAsync called.");
             throw new NotImplementedException();
             return Task.CompletedTask;
         }
 
         public Task SeekAsync(long Offset)
         {
+            logger.LogDebug("SeekAsync called.");
             throw new NotImplementedException();
         }
 
         public Task SetPositionAsync(ObjectPath TrackId, long Position)
         {
+            logger.LogDebug("SetPositionAsync called.");
             throw new NotImplementedException();
         }
 
         public Task OpenUriAsync(string Uri)
         {
+            logger.LogDebug("OpenUriAsync called.");
             throw new NotImplementedException();
         }
     }

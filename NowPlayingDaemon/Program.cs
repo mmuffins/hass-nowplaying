@@ -26,14 +26,7 @@ try
                 // .AddNetDaemonScheduler()
                 // .AddAppsFromAssembly(Assembly.GetExecutingAssembly())
                 .AddSingleton<DBusConnectionManager>()
-                // .AddSingleton<IMprisMediaPlayerService, MprisMediaPlayer>()
-                .AddSingleton<IMprisMediaPlayer>(provider => 
-                    new MprisMediaPlayer(
-                        provider.GetRequiredService<ILogger<MprisMediaPlayer>>(),
-                        "delmePlayer",  // Identity
-                        "delete mePlayer",  // DesktopEntry
-                        true  // CanControl
-                    ))
+                .AddSingleton<IMprisMediaPlayer, MprisMediaPlayer>()
                 .AddHostedService<Worker>()
                 
                 // Add next line if using code generator
