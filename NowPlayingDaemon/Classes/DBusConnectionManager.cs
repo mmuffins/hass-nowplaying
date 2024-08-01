@@ -1,6 +1,6 @@
 ﻿using Tmds.DBus;
 
-namespace MPRISInterface;
+namespace NowPlayingDaemon;
 
 public class DBusConnectionManager : IDisposable
 {

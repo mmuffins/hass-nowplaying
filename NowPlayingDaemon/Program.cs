@@ -1,6 +1,5 @@
 using System.Reflection;
 using Microsoft.Extensions.Hosting;
-using MPRISInterface;
 using NetDaemon.AppModel;
 using NetDaemon.Extensions.Logging;
 using NetDaemon.Extensions.Scheduler;
@@ -26,6 +25,7 @@ try
                 // .AddNetDaemonScheduler()
                 // .AddAppsFromAssembly(Assembly.GetExecutingAssembly())
                 .AddSingleton<DBusConnectionManager>()
+                .AddSingleton<IHassContextProvider, HassContextProvider>()
                 .AddSingleton<IMprisMediaPlayer, MprisMediaPlayer>()
                 .AddHostedService<Worker>()
                 

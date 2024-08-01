@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using Tmds.DBus;
 
 [assembly: InternalsVisibleTo(Tmds.DBus.Connection.DynamicAssemblyName)]
-namespace MPRISInterface
+namespace NowPlayingDaemon
 {
         
     public enum dbusInterface
@@ -32,6 +32,8 @@ namespace MPRISInterface
     {
         Task UpdateMetadata(string trackId, long length, string[] artist, string title, string album);
         Task RegisterPlayer(Connection connection, string identity, string desktopEntry, bool canControl);
+
+        public event Action OnPlayPause;
     }
 
 
@@ -159,6 +161,8 @@ namespace MPRISInterface
 
         public event Action<PropertyChanges> OnPropertiesChanged = delegate {};
 
+        public event Action OnPlayPause;
+
 
         public MprisMediaPlayer(ILogger<MprisMediaPlayer> logger)
         {
@@ -191,9 +195,11 @@ namespace MPRISInterface
 
         public async Task RegisterPlayer(Connection connection, string identity, string desktopEntry, bool canControl){
 
-            mprisMediaPlayerProperties.Identity = "delmeplayer";
-            mprisMediaPlayerProperties.DesktopEntry = "DELETE ME PLAYER";
-            mprisPlayerProperties.CanControl = true;
+
+            mprisMediaPlayerProperties.Identity = identity;
+            mprisMediaPlayerProperties.DesktopEntry = desktopEntry;
+            mprisPlayerProperties.CanControl = canControl;
+            mprisPlayerProperties.CanPlay = true;
             
             await connection.RegisterObjectAsync(this);
             await connection.RegisterServiceAsync("org.mpris.MediaPlayer2.myplayer");
@@ -383,7 +389,7 @@ namespace MPRISInterface
                 logger.LogError("PlayPause operation is not allowed.");
                 throw new DBusException("org.mpris.MediaPlayer2.Player.Error.NotAllowed", "PlayPause is not allowed.");
             }
-            throw new NotImplementedException();
+            OnPlayPause?.Invoke();
             return Task.CompletedTask;
         }
 
