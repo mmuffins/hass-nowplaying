@@ -1,0 +1,9 @@
+[Unit]
+Description=Home Assistant now playing
+
+[Service]
+Type=notify
+ExecStart=/usr/sbin/testapp
+
+[Install]
+WantedBy=multi-user.target

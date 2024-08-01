@@ -18,6 +18,7 @@ try
         .UseNetDaemonAppSettings()
         .UseNetDaemonDefaultLogging()
         .UseNetDaemonRuntime()
+        .UseSystemd()
         // .UseNetDaemonTextToSpeech()
         .ConfigureServices((_, services) =>
             services

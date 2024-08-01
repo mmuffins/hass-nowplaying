@@ -172,12 +172,12 @@ namespace NowPlayingDaemon
         }
 
         Task<MprisMediaPlayerProperties> IMediaPlayer2.GetAllAsync(){
-            logger.LogInformation("Getting all properties on interface IMediaPlayer2.");
+            logger.LogDebug("Getting all properties on interface IMediaPlayer2.");
             return Task.FromResult(mprisMediaPlayerProperties);
         }
 
         Task<MprisPlayerProperties> IPlayer.GetAllAsync(){
-            logger.LogInformation("Getting all properties on interface IPlayer.");
+            logger.LogDebug("Getting all properties on interface IPlayer.");
             return Task.FromResult(mprisPlayerProperties);
         }
 
