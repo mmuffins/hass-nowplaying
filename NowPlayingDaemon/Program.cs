@@ -1,53 +1,62 @@
-using System.Reflection;
 using Microsoft.Extensions.Hosting;
-using NetDaemon.AppModel;
-using NetDaemon.Extensions.Logging;
-using NetDaemon.Extensions.Scheduler;
-using NetDaemon.Extensions.Tts;
 using NetDaemon.Runtime;
 using NowPlayingDaemon;
-// Add next line if using code generator
-//using HomeAssistantGenerated;
 
-#pragma warning disable CA1812
+var configFilePath = GetConfigFilePath();
 
-
-try
-{
-    var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-    var configDir = System.IO.Path.Combine(homeDir, ".config", "hass-nowplaying");
-
-
-    await Host.CreateDefaultBuilder(args)
-        .ConfigureAppConfiguration((hostingContext, config) =>
+await Host.CreateDefaultBuilder(args)
+    .ConfigureAppConfiguration(
+        (hostingContext, config) =>
         {
-            config.SetBasePath(configDir)
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-        })
-        // .UseNetDaemonAppSettings()
-        // .UseNetDaemonDefaultLogging()
-        .UseNetDaemonRuntime()
-        .UseSystemd()
-        // .UseNetDaemonTextToSpeech()
-        .ConfigureServices((_, services) =>
+            config.AddJsonFile(configFilePath, optional: false, reloadOnChange: true);
+        }
+    )
+    .UseNetDaemonRuntime()
+    .UseSystemd()
+    .ConfigureServices(
+        (_, services) =>
             services
-                // .AddNetDaemonStateManager()
-                // .AddNetDaemonScheduler()
-                // .AddAppsFromAssembly(Assembly.GetExecutingAssembly())
                 .AddSingleton<DBusConnectionManager>()
                 .AddSingleton<IHassContextProvider, HassContextProvider>()
                 .AddSingleton<IMprisMediaPlayer, MprisMediaPlayer>()
                 .AddHostedService<Worker>()
-                
-                // Add next line if using code generator
-                // .AddHomeAssistantGenerated()
-        )
-        .Build()
-        .RunAsync()
-        .ConfigureAwait(false);
-}
-catch (Exception e)
+    )
+    .Build()
+    .RunAsync()
+    .ConfigureAwait(false);
+
+string GetConfigFilePath()
 {
-    Console.WriteLine($"Failed to start host... {e}");
-    throw;
+    // Priority 1: Environment variable for config path
+    var configPathEnv = Environment.GetEnvironmentVariable("HASSNOWPLAYING_APPSETTINGS_PATH");
+    if (!string.IsNullOrEmpty(configPathEnv) && File.Exists(configPathEnv))
+    {
+        return configPathEnv;
+    }
+
+    // Priority 2: XDG_CONFIG_HOME
+    var xdgConfigHome = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
+    if (!string.IsNullOrEmpty(xdgConfigHome))
+    {
+        var xdgConfigPath = Path.Combine(xdgConfigHome, "hass-nowplaying", "appsettings.json");
+        if (File.Exists(xdgConfigPath))
+        {
+            return xdgConfigPath;
+        }
+    }
+
+    // Priority 3: Check if running as root
+    if (Environment.UserName == "root")
+    {
+        var etcConfigPath = "/etc/hass-nowplaying/appsettings.json";
+        if (File.Exists(etcConfigPath))
+        {
+            return etcConfigPath;
+        }
+    }
+
+    // Priority 4: Default to user's home directory .config path
+    var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+    var userConfigPath = Path.Combine(homeDir, ".config", "hass-nowplaying", "appsettings.json");
+    return userConfigPath;
 }
