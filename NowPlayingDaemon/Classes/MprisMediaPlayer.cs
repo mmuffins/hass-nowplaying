@@ -6,33 +6,11 @@ using Tmds.DBus;
 
 namespace NowPlayingDaemon
 {
-    public enum dbusInterface
-    {
-        IMediaPlayer2,
-        IPlayer
-    }
-
-    public enum PlaybackStatus
-    {
-        // https://specifications.freedesktop.org/mpris-spec/latest/Player_Interface.html#Enum:Playback_Status
-        Playing,
-        Paused,
-        Stopped
-    }
-
-    public enum LoopStatus
-    {
-        // https://specifications.freedesktop.org/mpris-spec/latest/Player_Interface.html#Enum:Loop_Status
-        None,
-        Track,
-        Playlist
-    }
-
     public class MprisMediaPlayer : IMediaPlayer2, IPlayer, IMprisMediaPlayer
     {
         public ObjectPath ObjectPath => new ObjectPath("/org/mpris/MediaPlayer2");
 
-        private readonly ILogger<MprisMediaPlayer> logger;
+        private readonly ILogger<MprisMediaPlayer> _logger;
         readonly MprisMediaPlayerProperties mprisMediaPlayerProperties;
 
         readonly MprisPlayerProperties mprisPlayerProperties;
@@ -43,20 +21,20 @@ namespace NowPlayingDaemon
 
         public MprisMediaPlayer(ILogger<MprisMediaPlayer> logger)
         {
-            this.logger = logger;
+            this._logger = logger;
             mprisMediaPlayerProperties = new MprisMediaPlayerProperties();
             mprisPlayerProperties = new MprisPlayerProperties();
         }
 
         Task<MprisMediaPlayerProperties> IMediaPlayer2.GetAllAsync()
         {
-            logger.LogDebug("Getting all properties on interface IMediaPlayer2.");
+            _logger.LogDebug("Getting all properties on interface IMediaPlayer2.");
             return Task.FromResult(mprisMediaPlayerProperties);
         }
 
         Task<MprisPlayerProperties> IPlayer.GetAllAsync()
         {
-            logger.LogDebug("Getting all properties on interface IPlayer.");
+            _logger.LogDebug("Getting all properties on interface IPlayer.");
             return Task.FromResult(mprisPlayerProperties);
         }
 
@@ -90,7 +68,7 @@ namespace NowPlayingDaemon
 
         private object GetProperty(dbusInterface iface, string property)
         {
-            logger.LogInformation($"Getting property {property} on interface {iface}");
+            _logger.LogInformation($"Getting property {property} on interface {iface}");
 
             object targetObject = iface switch
             {
@@ -103,7 +81,7 @@ namespace NowPlayingDaemon
 
             if (propInfo == null)
             {
-                logger.LogError($"Property {property} not found on interface {iface}.");
+                _logger.LogError($"Property {property} not found on interface {iface}.");
                 throw new ArgumentException($"Property {property} not found.");
             }
 
@@ -128,7 +106,7 @@ namespace NowPlayingDaemon
 
         private Task SetProperty(dbusInterface iface, string property, object value)
         {
-            logger.LogInformation($"Setting property {property} on interface {iface}");
+            _logger.LogInformation($"Setting property {property} on interface {iface}");
 
             object targetObject = iface switch
             {
@@ -141,7 +119,7 @@ namespace NowPlayingDaemon
 
             if (propInfo == null || propInfo.IsInitOnly)
             {
-                logger.LogError($"Attempted to set non-existent or readonly property: {property}");
+                _logger.LogError($"Attempted to set non-existent or readonly property: {property}");
                 throw new ArgumentException($"Property {property} not found or is readonly.");
             }
 
@@ -153,7 +131,7 @@ namespace NowPlayingDaemon
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError($"Failed to convert type for {property}: {ex.Message}");
+                    _logger.LogError($"Failed to convert type for {property}: {ex.Message}");
                     throw;
                 }
             }
@@ -193,10 +171,10 @@ namespace NowPlayingDaemon
         {
             // https://www.freedesktop.org/wiki/Specifications/mpris-spec/metadata/
 
-            logger.LogInformation("Updating Metadata");
+            _logger.LogInformation("Updating Metadata");
             foreach (var item in customMetadata)
             {
-                logger.LogDebug($"Setting '{item.Key}' to '{item.Value}'.");
+                _logger.LogDebug($"Setting '{item.Key}' to '{item.Value}'.");
 
                 mprisPlayerProperties.Metadata[item.Key] = item.Value;
             }
@@ -208,7 +186,7 @@ namespace NowPlayingDaemon
 
         public Task AddMetadata(string key, object value)
         {
-            logger.LogInformation($"Adding Metadata item: {key}");
+            _logger.LogInformation($"Adding Metadata item: {key}");
             if (!mprisPlayerProperties.Metadata.ContainsKey(key))
             {
                 mprisPlayerProperties.Metadata.Add(key, value);
@@ -218,14 +196,14 @@ namespace NowPlayingDaemon
             }
             else
             {
-                logger.LogWarning($"Metadata key already exists: {key}");
+                _logger.LogWarning($"Metadata key already exists: {key}");
             }
             return Task.CompletedTask;
         }
 
         public Task RemoveMetadata(string key)
         {
-            logger.LogInformation($"Removing Metadata item: {key}");
+            _logger.LogInformation($"Removing Metadata item: {key}");
             if (mprisPlayerProperties.Metadata.ContainsKey(key))
             {
                 mprisPlayerProperties.Metadata.Remove(key);
@@ -235,53 +213,53 @@ namespace NowPlayingDaemon
             }
             else
             {
-                logger.LogWarning($"Metadata key not found: {key}");
+                _logger.LogWarning($"Metadata key not found: {key}");
             }
             return Task.CompletedTask;
         }
 
         public Task RaiseAsync()
         {
-            logger.LogDebug("RaiseAsync called.");
+            _logger.LogDebug("RaiseAsync called.");
             throw new NotImplementedException();
             return Task.CompletedTask;
         }
 
         public Task QuitAsync()
         {
-            logger.LogDebug("QuitAsync called.");
+            _logger.LogDebug("QuitAsync called.");
             throw new NotImplementedException();
             return Task.CompletedTask;
         }
 
         public Task PlayAsync()
         {
-            logger.LogDebug("PlayAsync called.");
+            _logger.LogDebug("PlayAsync called.");
             throw new NotImplementedException();
             return Task.CompletedTask;
         }
 
         public Task PauseAsync()
         {
-            logger.LogDebug("PauseAsync called.");
-            logger.LogInformation("PauseAsync");
+            _logger.LogDebug("PauseAsync called.");
+            _logger.LogInformation("PauseAsync");
             throw new NotImplementedException();
             return Task.CompletedTask;
         }
 
         public Task StopAsync()
         {
-            logger.LogDebug("StopAsync called.");
+            _logger.LogDebug("StopAsync called.");
             throw new NotImplementedException();
             return Task.CompletedTask;
         }
 
         public Task PlayPauseAsync()
         {
-            logger.LogDebug("PlayPauseAsync called.");
+            _logger.LogDebug("PlayPauseAsync called.");
             if (!mprisPlayerProperties.CanPause)
             {
-                logger.LogError("PlayPause operation is not allowed.");
+                _logger.LogError("PlayPause operation is not allowed.");
                 throw new DBusException(
                     "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
                     "PlayPause is not allowed."
@@ -293,7 +271,7 @@ namespace NowPlayingDaemon
 
         public Task PreviousAsync()
         {
-            logger.LogDebug("PreviousAsync called.");
+            _logger.LogDebug("PreviousAsync called.");
 
             throw new NotImplementedException();
             return Task.CompletedTask;
@@ -301,26 +279,26 @@ namespace NowPlayingDaemon
 
         public Task NextAsync()
         {
-            logger.LogDebug("NextAsync called.");
+            _logger.LogDebug("NextAsync called.");
             throw new NotImplementedException();
             return Task.CompletedTask;
         }
 
         public Task SeekAsync(long Offset)
         {
-            logger.LogDebug("SeekAsync called.");
+            _logger.LogDebug("SeekAsync called.");
             throw new NotImplementedException();
         }
 
         public Task SetPositionAsync(ObjectPath TrackId, long Position)
         {
-            logger.LogDebug("SetPositionAsync called.");
+            _logger.LogDebug("SetPositionAsync called.");
             throw new NotImplementedException();
         }
 
         public Task OpenUriAsync(string Uri)
         {
-            logger.LogDebug("OpenUriAsync called.");
+            _logger.LogDebug("OpenUriAsync called.");
             throw new NotImplementedException();
         }
     }

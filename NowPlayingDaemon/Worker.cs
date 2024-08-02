@@ -100,7 +100,7 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
 
     private MediaPlayerEntity GetMediaPlayerEntity(IHaContext haContext, string name)
     {
-        _logger.LogDebug($"Getting media player with name {name}.");
+        _logger.LogDebug($"Getting media player {name}.");
         // var haPlayerX = new Entity<MediaPlayerAttributes>(haContext, MediaPlayerEntityName);
         return haContext
             .GetAllEntities()
@@ -111,7 +111,7 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
 
     public void PlayPause()
     {
-        _logger.LogDebug("Sending PlayPause signal to home assistant.");
+        _logger.LogDebug("Sending PlayPause signal to player.");
         var haContext = _hassContextProvider.GetContext();
         var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
 
