@@ -14,9 +14,18 @@ using NowPlayingDaemon;
 
 try
 {
+    var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+    var configDir = System.IO.Path.Combine(homeDir, ".config", "hass-nowplaying");
+
+
     await Host.CreateDefaultBuilder(args)
-        .UseNetDaemonAppSettings()
-        .UseNetDaemonDefaultLogging()
+        .ConfigureAppConfiguration((hostingContext, config) =>
+        {
+            config.SetBasePath(configDir)
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+        })
+        // .UseNetDaemonAppSettings()
+        // .UseNetDaemonDefaultLogging()
         .UseNetDaemonRuntime()
         .UseSystemd()
         // .UseNetDaemonTextToSpeech()
