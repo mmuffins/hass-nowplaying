@@ -4,5 +4,8 @@
     "[csharp]": {
         "editor.defaultFormatter": "csharpier.csharpier-vscode"
     },
-    "csharpier.enableDebugLogs": true
+    "csharpier.enableDebugLogs": true,
+    "[json]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    }
 }
