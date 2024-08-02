@@ -7,12 +7,6 @@ using NetDaemon.HassModel.Entities;
 
 namespace NowPlayingDaemon;
 
-public interface IHassNowPlayingDaemon
-{
-    // Define your methods here that will be called elsewhere in your application
-    void PlayPause();
-}
-
 [NetDaemonApp]
 public class Worker : BackgroundService, IHassNowPlayingDaemon
 {
@@ -20,11 +14,14 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
     private readonly DBusConnectionManager _connectionManager;
     private readonly IMprisMediaPlayer _mprisPlayer;
     private readonly IHassContextProvider _hassContextProvider;
-
     public string MediaPlayerEntityName { get; set; }
+
+    public string PlayerFriendlyName { get; set; } = "Home Assistant";
+    public string PlayerDesktopEntry { get; set; } = "hass-nowplaying";
 
     public Worker(
         ILogger<Worker> logger,
+        IConfiguration config,
         IHassContextProvider hassContextProvider,
         DBusConnectionManager connectionManager,
         IMprisMediaPlayer iMprisMediaPlayer
@@ -35,23 +32,29 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
         _connectionManager = connectionManager;
         _mprisPlayer = iMprisMediaPlayer;
 
-        MediaPlayerEntityName = "media_player.sonos_arc";
+        var mediaPlayerEntity = config.GetValue<string>("MediaplayerEntity");
+
+        if (string.IsNullOrEmpty(mediaPlayerEntity))
+        {
+            throw new InvalidOperationException("MediaplayerEntity setting must be configured.");
+        }
+
+        MediaPlayerEntityName = mediaPlayerEntity;
 
         _mprisPlayer.OnPlayPause += PlayPause;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Starting worker loop.");
-        await _mprisPlayer.RegisterPlayer(
-            _connectionManager.Connection,
-            "testPlayer",
-            "testplayer",
-            false
-        );
+        _logger.LogDebug("Starting worker loop.");
         var haContext = _hassContextProvider.GetContext();
-
         var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
+
+        var friendlyName = haPlayer.Attributes?.FriendlyName;
+        if (!string.IsNullOrEmpty(friendlyName))
+        {
+            PlayerFriendlyName = friendlyName;
+        }
 
         haPlayer
             .StateAllChanges()
@@ -62,10 +65,14 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
                 await UpdateMprisMetadata();
             });
 
-        // while (!stoppingToken.IsCancellationRequested)
-        // {
-        //     await Task.Delay(5000, stoppingToken);
-        // }
+        await _mprisPlayer.RegisterPlayer(
+            _connectionManager.Connection,
+            PlayerFriendlyName,
+            PlayerDesktopEntry,
+            false
+        );
+
+        await UpdateMprisMetadata();
     }
 
     private async Task UpdateMprisMetadata()
@@ -94,7 +101,7 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
     private MediaPlayerEntity GetMediaPlayerEntity(IHaContext haContext, string name)
     {
         _logger.LogDebug($"Getting media player with name {name}.");
-        // var haPlayerX = new Entity<MediaPlayerAttributes>(haContext, "media_player.sonos_arc");
+        // var haPlayerX = new Entity<MediaPlayerAttributes>(haContext, MediaPlayerEntityName);
         return haContext
             .GetAllEntities()
             .Where(e => e.EntityId.StartsWith(name))
@@ -102,7 +109,7 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
             .First();
     }
 
-    public async void PlayPause()
+    public void PlayPause()
     {
         _logger.LogDebug("Sending PlayPause signal to home assistant.");
         var haContext = _hassContextProvider.GetContext();

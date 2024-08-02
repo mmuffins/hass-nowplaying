@@ -11,6 +11,8 @@ appsettings parameters
 running as deamon
 service file
 
+mpris desktop file
+
 
 # Configuration
 The application is configured in the appsettings.json which it tries to find in different locations, in the following order:
@@ -20,7 +22,7 @@ The application is configured in the appsettings.json which it tries to find in 
 - `~/.config/hass-nowplaying/appsettings.json` if no other option applies
 
 The following options are supported in the configuration file:
-- `Logging` - Supports standard .net core logging settings, see https://learn.microsoft.com/en-us/aspnet/core/fundamentals/logging
+- `Logging` - Optional. Supports standard .net core logging settings, see https://learn.microsoft.com/en-us/aspnet/core/fundamentals/logging
 - `HomeAssistant`
   - `Host` - The hostname or IP address of the Home Assistant instance to connect to.
   - `Port` - The port number on which Home Assistant is running.
