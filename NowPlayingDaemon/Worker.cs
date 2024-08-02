@@ -14,6 +14,9 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
     private readonly DBusConnectionManager _connectionManager;
     private readonly IMprisMediaPlayer _mprisPlayer;
     private readonly IHassContextProvider _hassContextProvider;
+
+    private readonly UriBuilder hassUrl;
+
     public string MediaPlayerEntityName { get; set; }
 
     public string PlayerFriendlyName { get; set; } = "Home Assistant";
@@ -31,6 +34,13 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
         _hassContextProvider = hassContextProvider;
         _connectionManager = connectionManager;
         _mprisPlayer = iMprisMediaPlayer;
+
+        hassUrl = new UriBuilder
+        {
+            Scheme = config.GetValue<bool>("HomeAssistant:Ssl") ? "https" : "http",
+            Host = config.GetValue<string>("HomeAssistant:Host"),
+            Port = config.GetValue<int>("HomeAssistant:Port")
+        };
 
         var mediaPlayerEntity = config.GetValue<string>("MediaplayerEntity");
 
@@ -75,27 +85,89 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
         await UpdateMprisMetadata();
     }
 
-    private async Task UpdateMprisMetadata()
+    public async Task UpdateMprisMetadata()
     {
         _logger.LogDebug($"Updating mpris player metadata.");
         var haContext = _hassContextProvider.GetContext();
         var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
-        Console.WriteLine(haPlayer.Attributes?.MediaTitle);
-        Console.WriteLine(haPlayer.Attributes?.MediaArtist);
-        Console.WriteLine(haPlayer.Attributes?.EntityPicture);
-        Console.WriteLine(haPlayer.Attributes?.MediaContentId);
+
+        var trackId = haPlayer.Attributes?.MediaContentId ?? "";
+        var url = haPlayer.Attributes?.MediaContentId ?? "";
+        var title = haPlayer.Attributes?.MediaTitle ?? "";
+        var artist = haPlayer.Attributes?.MediaArtist ?? "";
+        var album = haPlayer.Attributes?.MediaAlbumName ?? "";
+        var albumArtist = haPlayer.Attributes?.MediaAlbumArtist ?? "";
+        var length = haPlayer.Attributes?.MediaDuration ?? 0.0;
+        var position = haPlayer.Attributes?.MediaPosition ?? 0.0;
+        var artUrl = GetMediaUrl(haPlayer) ?? "";
+
+        // var shuffle = haPlayer.Attributes?.Shuffle ?? false;
+        // var repeat = haPlayer.Attributes?.Repeat ?? "";
+        // var volume = haPlayer.Attributes?.VolumeLevel ?? 0.0;
+        // var state = haPlayer.State;
+
+        var metadata = new Dictionary<string, object>();
+        metadata.Add("mpris:trackid", trackId);
+        metadata.Add("mpris:length", length);
+        metadata.Add("mpris:artUrl", artUrl);
+        metadata.Add("xesam:album", album);
+        metadata.Add("xesam:artist", new string[] { artist });
+        metadata.Add("xesam:albumArtist", new string[] { albumArtist });
+        metadata.Add("xesam:title", title);
+        metadata.Add("xesam:url", url);
+
         Console.WriteLine(haPlayer.Attributes?.MediaTrack);
-        Console.WriteLine(haPlayer.Attributes?.MediaDuration);
-        Console.WriteLine(haPlayer.Attributes?.MediaAlbumName);
 
         Console.WriteLine(haPlayer.State);
-        await _mprisPlayer.UpdateMetadata(
-            haPlayer.Attributes?.MediaContentId,
-            (long)haPlayer.Attributes?.MediaDuration,
-            new string[] { haPlayer.Attributes?.MediaArtist },
-            haPlayer.Attributes?.MediaTitle,
-            haPlayer.Attributes?.MediaAlbumName
-        );
+
+        _logger.LogInformation($"Now Playing: {artist}: {title}.");
+
+        await _mprisPlayer.UpdateMetadata(metadata);
+    }
+
+    private string GetMediaUrl(MediaPlayerEntity haPlayer)
+    {
+        // how the image uri is provided can very greatly between players
+        // so we need to check each possible values
+        string[] images =
+        [
+            haPlayer.Attributes?.MediaImageUrl ?? "",
+            haPlayer.Attributes?.EntityPicture ?? "",
+            haPlayer.Attributes?.EntityPictureLocal ?? "",
+        ];
+
+        foreach (var image in images)
+        {
+            if (string.IsNullOrEmpty(image))
+            {
+                continue;
+            }
+
+            // check if the value already is a valid uri
+            // if not, it's most likely a relative uri
+            var decodedImage = Uri.UnescapeDataString(image);
+            Uri imageUri;
+            if (
+                Uri.TryCreate(decodedImage, UriKind.Absolute, out imageUri)
+                && (imageUri.Scheme == Uri.UriSchemeHttp || imageUri.Scheme == Uri.UriSchemeHttps)
+            )
+            {
+                return imageUri.ToString();
+            }
+
+            if (
+                Uri.TryCreate(
+                    $"{hassUrl.Uri.AbsoluteUri.ToString().TrimEnd('/')}/{decodedImage.TrimStart('/')}",
+                    UriKind.Absolute,
+                    out imageUri
+                ) && (imageUri.Scheme == Uri.UriSchemeHttp || imageUri.Scheme == Uri.UriSchemeHttps)
+            )
+            {
+                return imageUri.ToString();
+            }
+        }
+
+        return null;
     }
 
     private MediaPlayerEntity GetMediaPlayerEntity(IHaContext haContext, string name)

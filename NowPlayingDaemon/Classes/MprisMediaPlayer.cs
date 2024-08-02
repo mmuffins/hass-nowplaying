@@ -17,7 +17,7 @@ namespace NowPlayingDaemon
 
         public event Action<PropertyChanges> OnPropertiesChanged = delegate { };
 
-        public event Action OnPlayPause;
+        public event Action OnPlayPause = delegate { };
 
         public MprisMediaPlayer(ILogger<MprisMediaPlayer> logger)
         {
@@ -171,7 +171,7 @@ namespace NowPlayingDaemon
         {
             // https://www.freedesktop.org/wiki/Specifications/mpris-spec/metadata/
 
-            _logger.LogInformation("Updating Metadata");
+            _logger.LogDebug("Updating Metadata");
             foreach (var item in customMetadata)
             {
                 _logger.LogDebug($"Setting '{item.Key}' to '{item.Value}'.");
