@@ -3,9 +3,9 @@ using Microsoft.Extensions.Logging;
 using Tmds.DBus;
 
 [assembly: InternalsVisibleTo(Tmds.DBus.Connection.DynamicAssemblyName)]
+
 namespace NowPlayingDaemon
 {
-        
     public enum dbusInterface
     {
         IMediaPlayer2,
@@ -20,7 +20,7 @@ namespace NowPlayingDaemon
         Stopped
     }
 
-    public enum LoopStatus 
+    public enum LoopStatus
     {
         // https://specifications.freedesktop.org/mpris-spec/latest/Player_Interface.html#Enum:Loop_Status
         None,
@@ -30,13 +30,22 @@ namespace NowPlayingDaemon
 
     public interface IMprisMediaPlayer
     {
-        Task UpdateMetadata(string trackId, long length, string[] artist, string title, string album);
-        Task RegisterPlayer(Connection connection, string identity, string desktopEntry, bool canControl);
+        Task UpdateMetadata(
+            string trackId,
+            long length,
+            string[] artist,
+            string title,
+            string album
+        );
+        Task RegisterPlayer(
+            Connection connection,
+            string identity,
+            string desktopEntry,
+            bool canControl
+        );
 
         public event Action OnPlayPause;
     }
-
-
 
     [Dictionary]
     public class MprisMediaPlayerProperties
@@ -65,8 +74,8 @@ namespace NowPlayingDaemon
         }
     }
 
-
-    [DBusInterface("org.mpris.MediaPlayer2",
+    [DBusInterface(
+        "org.mpris.MediaPlayer2",
         GetPropertyMethod = "GetAsync",
         PropertyType = typeof(MprisMediaPlayerProperties),
         SetPropertyMethod = "SetAsync"
@@ -118,16 +127,17 @@ namespace NowPlayingDaemon
             CanControl = false;
             Metadata = new Dictionary<string, object>
             {
-                {"mpris:trackid", "0"},
-                {"mpris:length", 0L}, // Track length in microseconds
-                {"xesam:artist", new string[] {""}},
-                {"xesam:title", ""},
-                {"xesam:album", ""}
+                { "mpris:trackid", "0" },
+                { "mpris:length", 0L }, // Track length in microseconds
+                { "xesam:artist", new string[] { "" } },
+                { "xesam:title", "" },
+                { "xesam:album", "" }
             };
         }
     }
 
-    [DBusInterface("org.mpris.MediaPlayer2.Player", 
+    [DBusInterface(
+        "org.mpris.MediaPlayer2.Player",
         GetPropertyMethod = "GetAsync",
         PropertyType = typeof(MprisPlayerProperties),
         SetPropertyMethod = "SetAsync"
@@ -159,10 +169,9 @@ namespace NowPlayingDaemon
 
         readonly MprisPlayerProperties mprisPlayerProperties;
 
-        public event Action<PropertyChanges> OnPropertiesChanged = delegate {};
+        public event Action<PropertyChanges> OnPropertiesChanged = delegate { };
 
         public event Action OnPlayPause;
-
 
         public MprisMediaPlayer(ILogger<MprisMediaPlayer> logger)
         {
@@ -171,12 +180,14 @@ namespace NowPlayingDaemon
             mprisPlayerProperties = new MprisPlayerProperties();
         }
 
-        Task<MprisMediaPlayerProperties> IMediaPlayer2.GetAllAsync(){
+        Task<MprisMediaPlayerProperties> IMediaPlayer2.GetAllAsync()
+        {
             logger.LogDebug("Getting all properties on interface IMediaPlayer2.");
             return Task.FromResult(mprisMediaPlayerProperties);
         }
 
-        Task<MprisPlayerProperties> IPlayer.GetAllAsync(){
+        Task<MprisPlayerProperties> IPlayer.GetAllAsync()
+        {
             logger.LogDebug("Getting all properties on interface IPlayer.");
             return Task.FromResult(mprisPlayerProperties);
         }
@@ -193,14 +204,18 @@ namespace NowPlayingDaemon
             return Task.FromResult<object>(value);
         }
 
-        public async Task RegisterPlayer(Connection connection, string identity, string desktopEntry, bool canControl){
-
-
+        public async Task RegisterPlayer(
+            Connection connection,
+            string identity,
+            string desktopEntry,
+            bool canControl
+        )
+        {
             mprisMediaPlayerProperties.Identity = identity;
             mprisMediaPlayerProperties.DesktopEntry = desktopEntry;
             mprisPlayerProperties.CanControl = canControl;
             mprisPlayerProperties.CanPlay = true;
-            
+
             await connection.RegisterObjectAsync(this);
             await connection.RegisterServiceAsync("org.mpris.MediaPlayer2.myplayer");
         }
@@ -217,7 +232,6 @@ namespace NowPlayingDaemon
             };
 
             var propInfo = targetObject.GetType().GetField(property);
-
 
             if (propInfo == null)
             {
@@ -287,15 +301,21 @@ namespace NowPlayingDaemon
             return SignalWatcher.AddAsync(this, nameof(OnPropertiesChanged), handler);
         }
 
-        public Task UpdateMetadata(string trackId, long length, string[] artist, string title, string album)
+        public Task UpdateMetadata(
+            string trackId,
+            long length,
+            string[] artist,
+            string title,
+            string album
+        )
         {
             var metadata = new Dictionary<string, object>
             {
-                {"mpris:trackid", trackId},
-                {"mpris:length", length},
-                {"xesam:artist", artist},
-                {"xesam:title", title},
-                {"xesam:album", album}
+                { "mpris:trackid", trackId },
+                { "mpris:length", length },
+                { "xesam:artist", artist },
+                { "xesam:title", title },
+                { "xesam:album", album }
             };
 
             return UpdateMetadata(metadata);
@@ -312,7 +332,9 @@ namespace NowPlayingDaemon
 
                 mprisPlayerProperties.Metadata[item.Key] = item.Value;
             }
-            OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty("Metadata", mprisPlayerProperties.Metadata));
+            OnPropertiesChanged?.Invoke(
+                PropertyChanges.ForProperty("Metadata", mprisPlayerProperties.Metadata)
+            );
             return Task.CompletedTask;
         }
 
@@ -322,7 +344,9 @@ namespace NowPlayingDaemon
             if (!mprisPlayerProperties.Metadata.ContainsKey(key))
             {
                 mprisPlayerProperties.Metadata.Add(key, value);
-                OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty("Metadata", mprisPlayerProperties.Metadata));
+                OnPropertiesChanged?.Invoke(
+                    PropertyChanges.ForProperty("Metadata", mprisPlayerProperties.Metadata)
+                );
             }
             else
             {
@@ -337,7 +361,9 @@ namespace NowPlayingDaemon
             if (mprisPlayerProperties.Metadata.ContainsKey(key))
             {
                 mprisPlayerProperties.Metadata.Remove(key);
-                OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty("Metadata", mprisPlayerProperties.Metadata));
+                OnPropertiesChanged?.Invoke(
+                    PropertyChanges.ForProperty("Metadata", mprisPlayerProperties.Metadata)
+                );
             }
             else
             {
@@ -385,9 +411,13 @@ namespace NowPlayingDaemon
         public Task PlayPauseAsync()
         {
             logger.LogDebug("PlayPauseAsync called.");
-            if(!mprisPlayerProperties.CanPause){
+            if (!mprisPlayerProperties.CanPause)
+            {
                 logger.LogError("PlayPause operation is not allowed.");
-                throw new DBusException("org.mpris.MediaPlayer2.Player.Error.NotAllowed", "PlayPause is not allowed.");
+                throw new DBusException(
+                    "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                    "PlayPause is not allowed."
+                );
             }
             OnPlayPause?.Invoke();
             return Task.CompletedTask;
