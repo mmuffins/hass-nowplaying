@@ -116,10 +116,6 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
         metadata.Add("xesam:title", title);
         metadata.Add("xesam:url", url);
 
-        Console.WriteLine(haPlayer.Attributes?.MediaTrack);
-
-        Console.WriteLine(haPlayer.State);
-
         _logger.LogInformation($"Now Playing: {artist}: {title}.");
 
         await _mprisPlayer.UpdateMetadata(metadata);
