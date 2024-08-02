@@ -1,0 +1,12 @@
+Warm thanks to the maintainers of the packages used in this project.
+
+Tmds.DBus
+https://github.com/tmds/Tmds.DBus/blob/main/COPYING (MIT)
+Copyright 2006 Alp Toker <alp@atoker.com>
+Copyright 2010 Other Contributors
+Copyright 2016 Tom Deseyn <tom.deseyn@gmail.com>
+
+
+netdaemon 
+https://github.com/net-daemon/netdaemon/blob/main/LICENSE (MIT)
+Copyright (c) 2019 Tomas Hellström
