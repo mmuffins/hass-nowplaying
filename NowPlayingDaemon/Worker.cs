@@ -142,7 +142,7 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
             // check if the value already is a valid uri
             // if not, it's most likely a relative uri
             var decodedImage = Uri.UnescapeDataString(image);
-            Uri imageUri;
+            Uri? imageUri;
             if (
                 Uri.TryCreate(decodedImage, UriKind.Absolute, out imageUri)
                 && (imageUri.Scheme == Uri.UriSchemeHttp || imageUri.Scheme == Uri.UriSchemeHttps)
@@ -163,7 +163,7 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
             }
         }
 
-        return null;
+        return string.Empty;
     }
 
     private MediaPlayerEntity GetMediaPlayerEntity(IHaContext haContext, string name)
