@@ -41,7 +41,7 @@ To enable the daemon to run on startup, configure it with
 ```bash
 systemctl --user enable hass-nowplaying.service
 ```
-
+When running the application as daemon it is recommended to change the log level in appsettings.json to `Warning` to prevent spamming the system log with unneeded information.
 
 
 # Configuration

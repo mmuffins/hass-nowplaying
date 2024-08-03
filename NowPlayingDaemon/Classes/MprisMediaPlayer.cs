@@ -68,7 +68,7 @@ namespace NowPlayingDaemon
 
         private object GetProperty(dbusInterface iface, string property)
         {
-            _logger.LogInformation($"Getting property {property} on interface {iface}");
+            _logger.LogDebug($"Getting property {property} on interface {iface}");
 
             object targetObject = iface switch
             {

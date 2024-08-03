@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Hosting;
 using NetDaemon.Runtime;
 using NowPlayingDaemon;
 
@@ -11,6 +10,25 @@ await Host.CreateDefaultBuilder(args)
             config.AddJsonFile(configFilePath, optional: false, reloadOnChange: true);
         }
     )
+    .ConfigureLogging(logging =>
+    {
+        logging.ClearProviders();
+        logging
+            .AddSystemdConsole(options =>
+            {
+                options.IncludeScopes = false;
+                options.TimestampFormat = "HH:mm:ss ";
+                options.UseUtcTimestamp = false;
+            })
+            .AddSimpleConsole(options =>
+            {
+                options.SingleLine = true;
+                options.IncludeScopes = false;
+                options.TimestampFormat = "HH:mm:ss ";
+                options.UseUtcTimestamp = false;
+            })
+            .SetMinimumLevel(LogLevel.Information);
+    })
     .UseNetDaemonRuntime()
     .UseSystemd()
     .ConfigureServices(
