@@ -34,7 +34,7 @@ jobs:
       run: dotnet restore
       
     - name: dotnet publish
-      run: dotnet publish ??.csproj --configuration ${{ env.build_configuration }} -p:PublishSingleFile=true --self-contained true -p:PublishTrimmed=true -p:PublishReadyToRun=true --runtime ${{ env.build_runtime }} --framework ${{ env.build_framework }} -p:Version=${{ env.version }} -p:PackageVersion=${{ env.version }} --output publish
+      run: dotnet publish --configuration ${{ env.build_configuration }} --runtime ${{ env.build_runtime }} --framework ${{ env.build_framework }} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -p:PublishReadyToRun=false -p:Version=${{ env.version }} -p:PackageVersion=${{ env.version }} --output publish
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -43,7 +43,7 @@ jobs:
         path: ${{ github.workspace }}/publish
       
     - name: dotnet test
-      run: dotnet test ????.sln --configuration ${{ env.build_configuration }} --framework ${{ env.build_framework }} --verbosity normal --logger "trx;LogFileName=TestResults.trx"
+      run: dotnet test --configuration ${{ env.build_configuration }} --framework ${{ env.build_framework }} --verbosity normal --logger "trx;LogFileName=TestResults.trx"
         
     - name: Publish Unit Test Results
       uses: dorny/test-reporter@v1
@@ -60,47 +60,53 @@ jobs:
       contents: write
 
     steps:
+    - name: Create folder
+      run: |
+        cd "${{ github.workspace }}/publish/"
+        mkdir hass-nowplaying
+
     - name: Get artifacts
       uses: actions/download-artifact@v4
       with:
         name: build
-        path: ${{ github.workspace }}/publish
+        path: ${{ github.workspace }}/publish/hass-nowplaying
       
-    - name: Zip Files
+    - name: Create tarball
       run: |
-        cd "${{ github.workspace }}/publish/" 
-        zip -r "hass-nowplaying.zip" .
+        cd "${{ github.workspace }}/publish/"
+        find . -name "*.pdb" -type f -delete
+        tar -czvf hass-nowplaying.tar.gz *
       
-    - name: Create release
-      uses: actions/github-script@v7
-      id: create-release
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          const {data: newRelease} = await github.rest.repos.createRelease({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            name: 'Home Assistant Now Playing Daemon ${{ env.version  }}',
-            tag_name: '${{ env.version  }}',
-            generate_release_notes: true,
-            draft: false,
-            prerelease: false
-          });
-          console.log(`Release has been created with id ${newRelease.id}: ${newRelease.html_url}`)
-          core.setOutput("url", newRelease.html_url)
-          core.setOutput("id", newRelease.id)
+    # - name: Create release
+    #   uses: actions/github-script@v7
+    #   id: create-release
+    #   with:
+    #     github-token: ${{ secrets.GITHUB_TOKEN }}
+    #     script: |
+    #       const {data: newRelease} = await github.rest.repos.createRelease({
+    #         owner: context.repo.owner,
+    #         repo: context.repo.repo,
+    #         name: 'Home Assistant Now Playing Daemon ${{ env.version  }}',
+    #         tag_name: '${{ env.version  }}',
+    #         generate_release_notes: true,
+    #         draft: false,
+    #         prerelease: false
+    #       });
+    #       console.log(`Release has been created with id ${newRelease.id}: ${newRelease.html_url}`)
+    #       core.setOutput("url", newRelease.html_url)
+    #       core.setOutput("id", newRelease.id)
           
-    - name: Upload Release Assets
-      uses: actions/github-script@v7
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          const fs = require('fs').promises
-          const attachment = await fs.readFile("./publish/ArtistResolver.zip")
-          await github.rest.repos.uploadReleaseAsset({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            release_id: '${{ steps.create-release.outputs.id }}',
-            data: attachment,
-            name: 'hass-nowplaying.zip'
-          });
+    # - name: Upload Release Assets
+    #   uses: actions/github-script@v7
+    #   with:
+    #     github-token: ${{ secrets.GITHUB_TOKEN }}
+    #     script: |
+    #       const fs = require('fs').promises
+    #       const attachment = await fs.readFile("./publish/ArtistResolver.zip")
+    #       await github.rest.repos.uploadReleaseAsset({
+    #         owner: context.repo.owner,
+    #         repo: context.repo.repo,
+    #         release_id: '${{ steps.create-release.outputs.id }}',
+    #         data: attachment,
+    #         name: 'hass-nowplaying.tar.gz'
+    #       });
