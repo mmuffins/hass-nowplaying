@@ -4,21 +4,51 @@ This tool connects to home assistant and integrates with the linux D-Bus to disp
 
 ## Development Setup
 config file locations
-appsettings parameters
-  home assistant
-  player name
-
 running as deamon
 service file
 
 mpris desktop file
 
+# Setup
+## Manual installation
+To manually install the application download the latest tarball release and extract it.
+```bash
+tar -xzvf hass-nowplaying.tar.gz
+```
+Copy the extracted file to `/usr/local/bin`
+```bash
+cp hass-nowplaying/hass-nowplaying /usr/local/bin
+```
+Copy appsettings json to a valid config file location and configure all required settings. See the configuration section for more information.
+```bash
+mkdir ~/.config/hass-nowplaying
+cp hass-nowplaying/appsettings.json ~/.config/hass-nowplaying
+```
+
+The application can now be started by running `hass-nowplaying`
+
+### Running as daemon
+If the application should be executed as daemon, copy hass-nowplaying.service to the systemd daemon directories and reload the daemon.
+```bash
+cp hass-nowplaying/hass-nowplaying.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+```
+The application can now be started as daemon.
+```bash
+systemctl --user start hass-nowplaying.service
+```
+To enable the daemon to run on startup, configure it with
+```bash
+systemctl --user enable hass-nowplaying.service
+```
+
+
 
 # Configuration
+## Config file
 The application is configured in the appsettings.json which it tries to find in different locations, in the following order:
 - The path configured in the `HASSNOWPLAYING_CONFIG_PATH` environment variable
 - `$XDG_CONFIG_HOME/hass-nowplaying/appsettings.json` if the XDG_CONFIG_HOME environment variable is set
-- `/etc/hass-nowplaying/appsettings.json` if running as root
 - `~/.config/hass-nowplaying/appsettings.json` if no other option applies
 
 The following options are supported in the configuration file:

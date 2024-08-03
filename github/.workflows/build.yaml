@@ -32,9 +32,12 @@ jobs:
       
     - name: dotnet restore
       run: dotnet restore
+
+    - name: dotnet build
+      run: dotnet build
       
     - name: dotnet publish
-      run: dotnet publish --configuration ${{ env.build_configuration }} --runtime ${{ env.build_runtime }} --framework ${{ env.build_framework }} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -p:PublishReadyToRun=false -p:Version=${{ env.version }} -p:PackageVersion=${{ env.version }} --output publish
+      run: dotnet publish --configuration ${{ env.build_configuration }} --runtime ${{ env.build_runtime }} --framework ${{ env.build_framework }} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -p:PublishReadyToRun=false -p:Version=${{ env.version }} -p:PackageVersion=${{ env.version }} --output publish
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -60,6 +63,8 @@ jobs:
       contents: write
 
     steps:
+    - uses: actions/checkout@v4
+
     - name: Create folder
       run: |
         cd "${{ github.workspace }}/publish/"
@@ -70,11 +75,13 @@ jobs:
       with:
         name: build
         path: ${{ github.workspace }}/publish/hass-nowplaying
-      
+
     - name: Create tarball
       run: |
         cd "${{ github.workspace }}/publish/"
         find . -name "*.pdb" -type f -delete
+        cp "${{ github.workspace }}/appsettings.json" "${{ github.workspace }}/publish/hass-nowplaying"
+        cp "${{ github.workspace }}/hassnowplaying.service" "${{ github.workspace }}/publish/hass-nowplaying"
         tar -czvf hass-nowplaying.tar.gz *
       
     # - name: Create release

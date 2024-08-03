@@ -9,9 +9,8 @@ public class DBusConnectionManager : IDisposable
 
     public DBusConnectionManager()
     {
-        using var dd = new Connection(Address.Session);
         connection = new Connection(Address.Session);
-        connection.ConnectAsync().Wait(); // Connect synchronously on startup
+        connection.ConnectAsync().Wait();
     }
 
     public Connection Connection => connection;
