@@ -1,0 +1,106 @@
+name: build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: 
+      - main
+  pull_request:
+
+env:
+  version: "0.0.${{ github.run_number }}${{ github.run_attempt }}"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: write
+      
+    env:
+      build_configuration: Release
+      build_runtime: linux-x64
+      build_framework: net8.0
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8
+      
+    - name: dotnet restore
+      run: dotnet restore
+      
+    - name: dotnet publish
+      run: dotnet publish ??.csproj --configuration ${{ env.build_configuration }} -p:PublishSingleFile=true --self-contained true -p:PublishTrimmed=true -p:PublishReadyToRun=true --runtime ${{ env.build_runtime }} --framework ${{ env.build_framework }} -p:Version=${{ env.version }} -p:PackageVersion=${{ env.version }} --output publish
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: build
+        path: ${{ github.workspace }}/publish
+      
+    - name: dotnet test
+      run: dotnet test ????.sln --configuration ${{ env.build_configuration }} --framework ${{ env.build_framework }} --verbosity normal --logger "trx;LogFileName=TestResults.trx"
+        
+    - name: Publish Unit Test Results
+      uses: dorny/test-reporter@v1
+      with:
+        name: Unit Test Results
+        path: Tests/**/TestResults.trx
+        reporter: dotnet-trx
+
+  release:
+    if: ${{ github.event_name != 'pull_request'  && github.ref_name == 'main' }}
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+
+    steps:
+    - name: Get artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build
+        path: ${{ github.workspace }}/publish
+      
+    - name: Zip Files
+      run: |
+        cd "${{ github.workspace }}/publish/" 
+        zip -r "hass-nowplaying.zip" .
+      
+    - name: Create release
+      uses: actions/github-script@v7
+      id: create-release
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const {data: newRelease} = await github.rest.repos.createRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            name: 'Home Assistant Now Playing Daemon ${{ env.version  }}',
+            tag_name: '${{ env.version  }}',
+            generate_release_notes: true,
+            draft: false,
+            prerelease: false
+          });
+          console.log(`Release has been created with id ${newRelease.id}: ${newRelease.html_url}`)
+          core.setOutput("url", newRelease.html_url)
+          core.setOutput("id", newRelease.id)
+          
+    - name: Upload Release Assets
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const fs = require('fs').promises
+          const attachment = await fs.readFile("./publish/ArtistResolver.zip")
+          await github.rest.repos.uploadReleaseAsset({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            release_id: '${{ steps.create-release.outputs.id }}',
+            data: attachment,
+            name: 'hass-nowplaying.zip'
+          });
