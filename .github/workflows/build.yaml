@@ -39,6 +39,11 @@ jobs:
     - name: dotnet publish
       run: dotnet publish --configuration ${{ env.build_configuration }} --runtime ${{ env.build_runtime }} --framework ${{ env.build_framework }} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -p:PublishReadyToRun=false -p:Version=${{ env.version }} -p:PackageVersion=${{ env.version }} --output publish
 
+    - name: Set execute permissoins
+      run: |
+        cd "${{ github.workspace }}/publish/"
+        chmod +x hass-nowplaying
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
@@ -99,7 +104,8 @@ jobs:
     - name: Move additional files
       run: |
         cd "${{ github.workspace }}/packaging/deb/${{ env.package_name }}"
-        ls -alR
+
+        chmod +x "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/bin/${{ env.package_name }}"
 
         find . -name "*.pdb" -type f -delete
 
