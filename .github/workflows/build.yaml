@@ -105,7 +105,7 @@ jobs:
       run: |
         cd "${{ github.workspace }}/packaging/deb/${{ env.package_name }}"
 
-        chmod +x "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/bin/${{ env.package_name }}"
+        chmod 755 "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/bin/${{ env.package_name }}"
 
         find . -name "*.pdb" -type f -delete
 
