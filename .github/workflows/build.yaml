@@ -99,6 +99,8 @@ jobs:
     - name: Move additional files
       run: |
         cd "${{ github.workspace }}/packaging/deb"
+        ls -alR
+
         find . -name "*.pdb" -type f -delete
 
         cp "${{ github.workspace }}/${{ env.package_name }}.service" "${{ github.workspace }}/packaging/deb/usr/share/${{ env.package_name }}"
