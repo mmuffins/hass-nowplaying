@@ -103,10 +103,10 @@ jobs:
 
         find . -name "*.pdb" -type f -delete
 
-        cp "${{ github.workspace }}/${{ env.package_name }}.service" "${{ github.workspace }}/packaging/deb/usr/share/${{ env.package_name }}"
-        cp "${{ github.workspace }}/appsettings.json" "${{ github.workspace }}/packaging/deb/usr/share/doc/${{ env.package_name }}"
-        cp "${{ github.workspace }}/README.md" "${{ github.workspace }}/packaging/deb/usr/share/doc/${{ env.package_name }}"
-        cp "${{ github.workspace }}/LICENSE" "${{ github.workspace }}/packaging/deb/usr/share/doc/${{ env.package_name }}"
+        cp "${{ github.workspace }}/${{ env.package_name }}.service" "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/share/${{ env.package_name }}"
+        cp "${{ github.workspace }}/appsettings.json" "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/share/doc/${{ env.package_name }}"
+        cp "${{ github.workspace }}/README.md" "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/share/doc/${{ env.package_name }}"
+        cp "${{ github.workspace }}/LICENSE" "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/share/doc/${{ env.package_name }}"
 
     - name: Build deb file
       run: |
