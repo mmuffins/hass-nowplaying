@@ -1,0 +1,6 @@
+Package: hass-nowplaying
+Version: 0.1-1
+Maintainer: mmuffins
+Architecture: amd64
+Priority: optional
+Description: Allows control of Home Assistant media players from linux.
