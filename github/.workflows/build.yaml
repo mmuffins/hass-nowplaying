@@ -44,7 +44,23 @@ jobs:
       with:
         name: build
         path: ${{ github.workspace }}/publish
-      
+
+    - name: Create tarball
+      run: |
+        cd "${{ github.workspace }}/publish/"
+        mkdir hass-nowplaying
+        find . -name "*.pdb" -type f -delete
+        cp "${{ github.workspace }}/appsettings.json" "${{ github.workspace }}/publish/hass-nowplaying"
+        cp "${{ github.workspace }}/hassnowplaying.service" "${{ github.workspace }}/publish/hass-nowplaying"
+        tar -czvf hass-nowplaying.tar.gz *
+        rm -r hass-nowplaying
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: tarball
+        path: ${{ github.workspace }}/publish
+
     - name: dotnet test
       run: dotnet test --configuration ${{ env.build_configuration }} --framework ${{ env.build_framework }} --verbosity normal --logger "trx;LogFileName=TestResults.trx"
         
@@ -55,35 +71,80 @@ jobs:
         path: Tests/**/TestResults.trx
         reporter: dotnet-trx
 
+  deb:
+    runs-on: ubuntu-latest
+    needs: build
+          
+    env:
+      package_name: hass-nowplaying
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Create folder structure
+      run: |
+        cd "${{ github.workspace }}/packaging/deb"
+        mkdir -p usr/bin
+        mkdir -p usr/share/${{ env.package_name }}
+        mkdir -p usr/share/doc/${{ env.package_name }}
+
+    - name: Get artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build
+        path: ${{ github.workspace }}/packaging/deb/usr/bin
+
+    - name: Move additional files
+      run: |
+        cd "${{ github.workspace }}/packaging/deb"
+        find . -name "*.pdb" -type f -delete
+
+        cp "${{ github.workspace }}/${{ env.package_name }}.service" "${{ github.workspace }}/packaging/deb/usr/share/${{ env.package_name }}"
+        cp "${{ github.workspace }}/appsettings.json" "${{ github.workspace }}/packaging/deb/usr/share/doc/${{ env.package_name }}"
+        cp "${{ github.workspace }}/README.md" "${{ github.workspace }}/packaging/deb/usr/share/doc/${{ env.package_name }}"
+        cp "${{ github.workspace }}/LICENSE" "${{ github.workspace }}/packaging/deb/usr/share/doc/${{ env.package_name }}"
+
+    - name: Build deb file
+      run: |
+        cd "${{ github.workspace }}/packaging/deb"
+        dpkg-deb --build ${{ env.package_name }}
+        mv ${{ env.package_name }}.deb "${{ github.workspace }}/publish/${{ env.package_name }}_${{ env.version }}.deb"
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: deb
+        path: ${{ github.workspace }}/publish
+
+    - name: Check deb file
+      run: |
+        cd "${{ github.workspace }}/publish"
+        dpkg -I ${{ env.package_name }}_${{ env.version }}.deb
+        sudo dpkg -i ${{ env.package_name }}_${{ env.version }}.deb
+
   release:
     if: ${{ github.event_name != 'pull_request'  && github.ref_name == 'main' }}
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, deb]
     permissions:
       contents: write
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Create folder
-      run: |
-        cd "${{ github.workspace }}/publish/"
-        mkdir hass-nowplaying
-
-    - name: Get artifacts
+    - name: Get tarball
       uses: actions/download-artifact@v4
       with:
-        name: build
-        path: ${{ github.workspace }}/publish/hass-nowplaying
+        name: tarball
+        path: ${{ github.workspace }}/publish
 
-    - name: Create tarball
-      run: |
-        cd "${{ github.workspace }}/publish/"
-        find . -name "*.pdb" -type f -delete
-        cp "${{ github.workspace }}/appsettings.json" "${{ github.workspace }}/publish/hass-nowplaying"
-        cp "${{ github.workspace }}/hassnowplaying.service" "${{ github.workspace }}/publish/hass-nowplaying"
-        tar -czvf hass-nowplaying.tar.gz *
-      
+    - name: Get deb
+      uses: actions/download-artifact@v4
+      with:
+        name: deb
+        path: ${{ github.workspace }}/publish
+
+
     # - name: Create release
     #   uses: actions/github-script@v7
     #   id: create-release
@@ -109,7 +170,8 @@ jobs:
     #     github-token: ${{ secrets.GITHUB_TOKEN }}
     #     script: |
     #       const fs = require('fs').promises
-    #       const attachment = await fs.readFile("./publish/ArtistResolver.zip")
+
+    #       const attachment = await fs.readFile("./publish/hass-nowplaying.tar.gz")
     #       await github.rest.repos.uploadReleaseAsset({
     #         owner: context.repo.owner,
     #         repo: context.repo.repo,
@@ -117,3 +179,5 @@ jobs:
     #         data: attachment,
     #         name: 'hass-nowplaying.tar.gz'
     #       });
+
+
