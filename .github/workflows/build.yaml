@@ -108,6 +108,7 @@ jobs:
 
     - name: Build deb file
       run: |
+        mkdir -p "${{ github.workspace }}/publish"
         cd "${{ github.workspace }}/packaging/deb"
         dpkg-deb --build ${{ env.package_name }}
         ls
