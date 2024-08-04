@@ -48,10 +48,12 @@ jobs:
     - name: Create tarball
       run: |
         cd "${{ github.workspace }}/publish/"
-        mkdir hass-nowplaying
         find . -name "*.pdb" -type f -delete
-        cp "${{ github.workspace }}/appsettings.json" "${{ github.workspace }}/publish/hass-nowplaying"
-        cp "${{ github.workspace }}/hassnowplaying.service" "${{ github.workspace }}/publish/hass-nowplaying"
+        mkdir -p tarball/hass-nowplaying
+        mv hass-nowplaying tarball/hass-nowplaying
+        cp "${{ github.workspace }}/appsettings.json" "${{ github.workspace }}/publish/tarball/hass-nowplaying"
+        cp "${{ github.workspace }}/hassnowplaying.service" "${{ github.workspace }}/publish/tarball/hass-nowplaying"
+        cd tarball
         tar -czvf hass-nowplaying.tar.gz *
         rm -r hass-nowplaying
 
@@ -59,7 +61,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: tarball
-        path: ${{ github.workspace }}/publish
+        path: ${{ github.workspace }}/publish/tarball
 
     - name: dotnet test
       run: dotnet test --configuration ${{ env.build_configuration }} --framework ${{ env.build_framework }} --verbosity normal --logger "trx;LogFileName=TestResults.trx"
