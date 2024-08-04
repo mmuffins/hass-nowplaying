@@ -52,7 +52,7 @@ jobs:
         mkdir -p tarball/hass-nowplaying
         mv hass-nowplaying tarball/hass-nowplaying
         cp "${{ github.workspace }}/appsettings.json" "${{ github.workspace }}/publish/tarball/hass-nowplaying"
-        cp "${{ github.workspace }}/hassnowplaying.service" "${{ github.workspace }}/publish/tarball/hass-nowplaying"
+        cp "${{ github.workspace }}/hass-nowplaying.service" "${{ github.workspace }}/publish/tarball/hass-nowplaying"
         cd tarball
         tar -czvf hass-nowplaying.tar.gz *
         rm -r hass-nowplaying
