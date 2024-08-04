@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+
+echo "To configure the application, copy the included example configuration file to your .config directory:"
+echo "mkdir ~/.config/hass-nowplaying/"
+echo "cp /usr/share/doc/hass-nowplaying/appsettings.json ~/.config/hass-nowplaying/"
+
+echo "To run hass-nowplyaing as service, run:"
+echo "mkdir -p ~/.config/systemd/user/"
+echo "cp /usr/share/hass-nowplaying/hass-nowplaying.service ~/.config/systemd/user/"
+echo "systemctl --user daemon-reload"
+echo "systemctl --user enable hass-nowplaying.service"
+echo "systemctl --user start hass-nowplaying.service"
+
+exit 0

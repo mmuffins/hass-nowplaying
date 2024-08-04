@@ -1,21 +1,78 @@
-# Project template for binary deploy
-This is the project template for binary deploy. This allows you to build a binary package and deploy it to NetDaemon.
+# mpris desktop file
 
-This is generated using NetDaemon runtime version 3.1 and .NET 7.
+# Home Assistant Now Playing Daemon 
+This tool connects to home assistant and integrates with the linux D-Bus to display information about the currently playing media on media player 
+entities.
 
-## Getting started
-Please see [netdaemon.xyz](https://netdaemon.xyz/docs/v3) for more information about getting starting developing apps for Home Assistant using NetDaemon.
+# Setup
+## Manual installation
+To manually install the application download the latest tarball from the releases section and extract it with
+```bash
+tar -xzvf hass-nowplaying.tar.gz
+```
+Copy the extracted file to the `/usr/bin` directory
+```bash
+cp hass-nowplaying/hass-nowplaying /usr/bin
+```
+Copy appsettings json to a valid config file location and configure all required settings. See the configuration section for more information.
+```bash
+mkdir ~/.config/hass-nowplaying
+cp hass-nowplaying/appsettings.json ~/.config/hass-nowplaying
+```
 
-Please add code generation features in `program.cs` when using code generation features by removing comments!
+## Via deb file
+To install the application via deb file, download the latest deb file fro the releases section and install it with
+```bash
+dpkg -i hass-nowplaying.deb
+```
+Copy the example configuration file to the user directory
+```bash
+mkdir ~/.config/hass-nowplaying/
+cp /usr/share/doc/hass-nowplaying/appsettings.json ~/.config/hass-nowplaying/
+```
 
-## Use the code generator
-See https://netdaemon.xyz/docs/v3/hass_model/hass_model_codegen
+# Configuration
+## Config file
+The application is configured in the appsettings.json which it tries to find in different locations, in the following order:
+- The path configured in the `HASSNOWPLAYING_CONFIG_PATH` environment variable
+- `$XDG_CONFIG_HOME/hass-nowplaying/appsettings.json` if the XDG_CONFIG_HOME environment variable is set
+- `~/.config/hass-nowplaying/appsettings.json` if no other option applies
 
-## Issues
+### Supported properties
+The following options are supported in the configuration file:
+- `Logging` - Optional. Supports standard .net core logging settings, see https://learn.microsoft.com/en-us/aspnet/core/fundamentals/logging
+- `HomeAssistant`
+  - `Host` - The hostname or IP address of the Home Assistant instance to connect to.
+  - `Port` - The port number on which Home Assistant is running.
+  - `Ssl` - Boolean value indicating whether to use SSL/TLS to connect to Home Assistant.
+  - `Token` - Long-lived access to authenticate with Home Assistant.
+- `MediaplayerEntity` - The entity ID of the media player in Home Assistant to connect to.
 
-- If you have issues or suggestions of improvements to this template, please [add an issue](https://github.com/net-daemon/netdaemon-app-template)
-- If you have issues or suggestions of improvements to NetDaemon, please [add an issue](https://github.com/net-daemon/netdaemon/issues)
+# Running the application
+## Interactively
+Once it has been installed and configured the application can now be started interactively by running `hass-nowplaying`. There are no parameters or switches, all configuration is done with the configuration file. Once started, the application will create an mpris media player service that automatically integrates itself with all distributions that support it to display the currently playing track and enable media key controls.
 
-## Discuss the NetDaemon
+## As service
+**Note that the application needs to access the user D-Bus session, so it's not possible to run it as regular root service!**
+The hass-nowplaying supports being run as service. To do so, copy the service file to the systemd user directory and reload the daemon.
+```bash
+cp /usr/share/hass-nowplaying/hass-nowplaying.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+```
+The application can now be started as service.
+```bash
+systemctl --user start hass-nowplaying.service
+```
+To enable it to run on startup, configure it with
+```bash
+systemctl --user enable hass-nowplaying.service
+```
+When running the application as daemon it is recommended to change the log level in appsettings.json to `Warning` to prevent spamming the system log with unneeded information.
 
-Please [join the Discord server](https://discord.gg/K3xwfcX) to get support or if you want to contribute and help others.
+To uninstall the service, disable it and delete the service file:
+```bash
+systemctl --user stop hass-nowplaying.service
+systemctl --user disable hass-nowplaying.service
+rm ~/.config/systemd/user/hass-nowplaying.service
+systemctl --user daemon-reload
+```

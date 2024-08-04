@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+echo "To completely remove all service configurations run:"
+echo "rm ~/.config/systemd/user/hass-nowplaying.service"
+echo "systemctl --user daemon-reload"
+
+exit 0

@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+echo "If you hass-nowplaying to run as service, run the following to stop and disable it:"
+echo "systemctl --user stop hass-nowplaying.service"
+echo "systemctl --user disable hass-nowplaying.service"
+
+exit 0

@@ -1,0 +1,13 @@
+[Unit]
+Description=Home Assistant now playing
+After=dbus.service network-online.target
+Wants=network-online.target
+Requires=dbus.service
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/hass-nowplaying
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
