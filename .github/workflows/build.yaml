@@ -66,12 +66,12 @@ jobs:
     - name: dotnet test
       run: dotnet test --configuration ${{ env.build_configuration }} --framework ${{ env.build_framework }} --verbosity normal --logger "trx;LogFileName=TestResults.trx"
         
-    - name: Publish Unit Test Results
-      uses: dorny/test-reporter@v1
-      with:
-        name: Unit Test Results
-        path: Tests/**/TestResults.trx
-        reporter: dotnet-trx
+    # - name: Publish Unit Test Results
+    #   uses: dorny/test-reporter@v1
+    #   with:
+    #     name: Unit Test Results
+    #     path: Tests/**/TestResults.trx
+    #     reporter: dotnet-trx
 
   deb:
     runs-on: ubuntu-latest
