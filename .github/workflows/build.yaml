@@ -85,7 +85,7 @@ jobs:
 
     - name: Create folder structure
       run: |
-        cd "${{ github.workspace }}/packaging/deb"
+        cd "${{ github.workspace }}/packaging/deb/${{ env.package_name }}"
         mkdir -p usr/bin
         mkdir -p usr/share/${{ env.package_name }}
         mkdir -p usr/share/doc/${{ env.package_name }}
@@ -94,11 +94,11 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: build
-        path: ${{ github.workspace }}/packaging/deb/usr/bin
+        path: ${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/bin
 
     - name: Move additional files
       run: |
-        cd "${{ github.workspace }}/packaging/deb"
+        cd "${{ github.workspace }}/packaging/deb/${{ env.package_name }}"
         ls -alR
 
         find . -name "*.pdb" -type f -delete
