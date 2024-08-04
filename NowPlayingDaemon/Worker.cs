@@ -170,9 +170,10 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
     {
         _logger.LogDebug($"Getting media player {name}.");
         // var haPlayerX = new Entity<MediaPlayerAttributes>(haContext, MediaPlayerEntityName);
+
         return haContext
             .GetAllEntities()
-            .Where(e => e.EntityId.StartsWith(name))
+            .Where(e => e.EntityId == name)
             .Select(e => new MediaPlayerEntity(e))
             .First();
     }
