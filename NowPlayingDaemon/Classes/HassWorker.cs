@@ -54,6 +54,10 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         _mprisPlayer.OnPlayPause += PlayPause;
         _mprisPlayer.OnPlay += Play;
         _mprisPlayer.OnPause += Pause;
+        _mprisPlayer.OnNext += NextTrack;
+        _mprisPlayer.OnPrevious += PreviousTrack;
+        _mprisPlayer.OnStop += Stop;
+        _mprisPlayer.OnQuit += TurnOff;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -95,10 +99,11 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             });
 
         await _mprisPlayer.RegisterPlayer(PlayerFriendlyName, PlayerDesktopEntry);
-        await _mprisPlayer.RegisterService();
 
-        await UpdateMprisMetadata(haPlayer);
         await UpdatePlayerState(haPlayer.EntityState);
+        await UpdateMprisMetadata(haPlayer);
+
+        await _mprisPlayer.RegisterService();
     }
 
     public async Task UpdatePlayerState(EntityState<MediaPlayerAttributes>? state)
@@ -114,17 +119,23 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
 
         switch (newState)
         {
-            case "paused":
-                await _mprisPlayer.SetPlaybackStatus(PlaybackStatus.Paused);
-                await _mprisPlayer.SetCanPlay(true);
-                await _mprisPlayer.SetCanPause(true);
-                await _mprisPlayer.RegisterService();
-                return;
-
             case "playing":
                 await _mprisPlayer.SetPlaybackStatus(PlaybackStatus.Playing);
                 await _mprisPlayer.SetCanPlay(true);
                 await _mprisPlayer.SetCanPause(true);
+                await _mprisPlayer.SetCanQuit(true);
+                await _mprisPlayer.SetCanGoNext(true);
+                await _mprisPlayer.SetCanGoPrevious(true);
+                await _mprisPlayer.RegisterService();
+                return;
+
+            case "paused":
+                await _mprisPlayer.SetPlaybackStatus(PlaybackStatus.Paused);
+                await _mprisPlayer.SetCanPlay(true);
+                await _mprisPlayer.SetCanPause(true);
+                await _mprisPlayer.SetCanQuit(true);
+                await _mprisPlayer.SetCanGoNext(true);
+                await _mprisPlayer.SetCanGoPrevious(true);
                 await _mprisPlayer.RegisterService();
                 return;
 
@@ -132,19 +143,28 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
                 await _mprisPlayer.SetPlaybackStatus(PlaybackStatus.Stopped);
                 await _mprisPlayer.SetCanPlay(true);
                 await _mprisPlayer.SetCanPause(true);
+                await _mprisPlayer.SetCanQuit(true);
+                await _mprisPlayer.SetCanGoNext(true);
+                await _mprisPlayer.SetCanGoPrevious(true);
                 await _mprisPlayer.RegisterService();
                 return;
 
             case "off":
                 await _mprisPlayer.SetPlaybackStatus(PlaybackStatus.Stopped);
                 await _mprisPlayer.SetCanPlay(false);
-                await _mprisPlayer.SetCanPause(true);
+                await _mprisPlayer.SetCanPause(false);
+                await _mprisPlayer.SetCanQuit(false);
+                await _mprisPlayer.SetCanGoNext(false);
+                await _mprisPlayer.SetCanGoPrevious(false);
                 await _mprisPlayer.UnregisterService();
                 return;
 
             default:
                 _logger.LogError($"Unknown player state '{newState}'");
                 await _mprisPlayer.SetCanPlay(false);
+                await _mprisPlayer.SetCanPause(false);
+                await _mprisPlayer.SetCanQuit(false);
+                await _mprisPlayer.UnregisterService();
 
                 return;
         }
@@ -279,6 +299,11 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             return;
         }
 
+        if (haPlayer.State == "playing")
+        {
+            return;
+        }
+
         haPlayer.MediaPlay();
     }
 
@@ -293,6 +318,101 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             return;
         }
 
+        if (haPlayer.State == "paused")
+        {
+            return;
+        }
         haPlayer.MediaPause();
+    }
+
+    public void Stop()
+    {
+        _logger.LogDebug("Sending stop signal to media player.");
+        var haContext = _hassContextProvider.GetContext();
+        var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
+        if (haPlayer == null)
+        {
+            _logger.LogError("Could not get media player.");
+            return;
+        }
+
+        if (haPlayer.State == "idle")
+        {
+            return;
+        }
+        haPlayer.MediaStop();
+    }
+
+    public void NextTrack()
+    {
+        _logger.LogDebug("Sending next track signal to media player.");
+        var haContext = _hassContextProvider.GetContext();
+        var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
+        if (haPlayer == null)
+        {
+            _logger.LogError("Could not get media player.");
+            return;
+        }
+
+        // According to https://specifications.freedesktop.org/mpris-spec/latest/Player_Interface.html
+        // the next and previous actions should fire even if it's not know if they will be successful
+        // so we don't really need to check for anything
+        haPlayer.MediaNextTrack();
+    }
+
+    public void PreviousTrack()
+    {
+        _logger.LogDebug("Sending previous track signal to media player.");
+        var haContext = _hassContextProvider.GetContext();
+        var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
+        if (haPlayer == null)
+        {
+            _logger.LogError("Could not get media player.");
+            return;
+        }
+
+        // if (haPlayer.Attributes.ItemsInQueue == true)
+        // {
+        //     return;
+        // }
+        haPlayer.MediaPreviousTrack();
+    }
+
+    public void TurnOn()
+    {
+        _logger.LogDebug("Sending on signal to media player.");
+        var haContext = _hassContextProvider.GetContext();
+        var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
+        if (haPlayer == null)
+        {
+            _logger.LogError("Could not get media player.");
+            return;
+        }
+
+        if (haPlayer.IsOn())
+        {
+            return;
+        }
+
+        haPlayer.TurnOn();
+    }
+
+    public void TurnOff()
+    {
+        _logger.LogDebug("Sending off signal to media player.");
+        var haContext = _hassContextProvider.GetContext();
+        var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
+        if (haPlayer == null)
+        {
+            _logger.LogError("Could not get media player.");
+            return;
+        }
+
+        if (haPlayer.IsOn())
+        {
+            return;
+        }
+
+        haPlayer.TurnOff();
     }
 }
