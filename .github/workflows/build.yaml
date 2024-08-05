@@ -9,6 +9,8 @@ on:
 
 env:
   version: "0.0.${{ github.run_number }}${{ github.run_attempt }}"
+  package_name: hass-nowplaying
+
 
 jobs:
   build:
@@ -54,12 +56,12 @@ jobs:
       run: |
         cd "${{ github.workspace }}/publish/"
         find . -name "*.pdb" -type f -delete
-        mkdir -p tarball/hass-nowplaying
-        mv hass-nowplaying tarball/hass-nowplaying
-        cp "${{ github.workspace }}/appsettings.json" "${{ github.workspace }}/publish/tarball/hass-nowplaying"
-        cp "${{ github.workspace }}/hass-nowplaying.service" "${{ github.workspace }}/publish/tarball/hass-nowplaying"
+        mkdir -p tarball/${{ env.package_name }}
+        mv hass-nowplaying tarball/${{ env.package_name }}
+        cp "${{ github.workspace }}/appsettings.json" "${{ github.workspace }}/publish/tarball/${{ env.package_name }}"
+        cp "${{ github.workspace }}/hass-nowplaying.service" "${{ github.workspace }}/publish/tarball/${{ env.package_name }}"
         cd tarball
-        tar -czvf hass-nowplaying_${{ env.version }}.tar.gz *
+        tar -czvf ${{ env.package_name }}_${{ env.version }}.tar.gz *
         rm -r hass-nowplaying
 
     - name: Upload artifact
@@ -81,9 +83,6 @@ jobs:
   deb:
     runs-on: ubuntu-latest
     needs: build
-          
-    env:
-      package_name: hass-nowplaying
 
     steps:
     - uses: actions/checkout@v4
@@ -184,7 +183,7 @@ jobs:
           const path = require('path');
 
           const files = [
-            path.join('${{ github.workspace }}', 'publish', 'hass-nowplaying_${{ env.version }}.tar.gz'),
+            path.join('${{ github.workspace }}', 'publish', '${{ env.package_name }}_${{ env.version }}.tar.gz'),
             path.join('${{ github.workspace }}', 'publish', '${{ env.package_name }}_${{ env.version }}.deb')
           ];
 
