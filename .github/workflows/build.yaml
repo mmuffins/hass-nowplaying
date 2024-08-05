@@ -134,7 +134,7 @@ jobs:
         sudo dpkg -i ${{ env.package_name }}_${{ env.version }}.deb
 
   release:
-    if: ${{ github.event_name != 'pull_request'  && github.ref_name == 'main' }}
+    # if: ${{ github.event_name != 'pull_request'  && github.ref_name == 'main' }}
     runs-on: ubuntu-latest
     needs: [build, deb]
     permissions:
