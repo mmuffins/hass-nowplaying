@@ -32,6 +32,8 @@ public interface IMprisMediaPlayer
     Task PreviousAsync();
     Task NextAsync();
     Task SeekAsync(long offset);
+    Task SetPositionAsync(ObjectPath TrackId, long Position);
+    Task OpenUriAsync(string Uri);
 
     event Action<PropertyChanges> OnPropertiesChanged;
     event Action OnRaise;
@@ -43,6 +45,6 @@ public interface IMprisMediaPlayer
     event Action OnPrevious;
     event Action OnNext;
     event Action<long> OnSeek;
-    event Action OnSetPosition;
-    event Action OnOpenUri;
+    event Action<string, long> OnSetPosition;
+    event Action<string> OnOpenUri;
 }

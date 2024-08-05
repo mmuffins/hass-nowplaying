@@ -38,8 +38,8 @@ namespace NowPlayingDaemon
         public event Action OnPrevious = delegate { };
         public event Action OnNext = delegate { };
         public event Action<long> OnSeek = delegate { };
-        public event Action OnSetPosition = delegate { };
-        public event Action OnOpenUri = delegate { };
+        public event Action<string, long> OnSetPosition = delegate { };
+        public event Action<string> OnOpenUri = delegate { };
 
         public MprisMediaPlayer(
             ILogger<MprisMediaPlayer> logger,
@@ -498,16 +498,29 @@ namespace NowPlayingDaemon
         public Task SetPositionAsync(ObjectPath TrackId, long Position)
         {
             _logger.LogDebug("Received set position event.");
-            throw new NotImplementedException();
-            OnSetPosition.Invoke();
+            if (!mprisPlayerProperties.CanControl || !mprisPlayerProperties.CanSeek)
+            {
+                _logger.LogError("set position operation is not allowed.");
+                throw new DBusException(
+                    "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                    "Set position is not allowed."
+                );
+            }
+
+            OnSetPosition.Invoke(TrackId.ToString(), Position);
             return Task.CompletedTask;
         }
 
         public Task OpenUriAsync(string Uri)
         {
             _logger.LogDebug("Received open uri event.");
-            throw new NotImplementedException();
-            OnOpenUri.Invoke();
+            _logger.LogError("Open uri operation is not allowed.");
+            throw new DBusException(
+                "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                "Open uri is not allowed."
+            );
+
+            OnOpenUri.Invoke(Uri);
             return Task.CompletedTask;
         }
     }

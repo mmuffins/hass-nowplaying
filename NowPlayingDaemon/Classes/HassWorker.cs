@@ -389,6 +389,25 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         haPlayer.MediaSeek(offset);
     }
 
+    public void PlayMedia(
+        string mediaContentId,
+        string mediaContentType,
+        object enqueue,
+        bool announce
+    )
+    {
+        _logger.LogDebug($"Sending play media signal for id {mediaContentId} media player.");
+        var haContext = _hassContextProvider.GetContext();
+        var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
+        if (haPlayer == null)
+        {
+            _logger.LogError("Could not get media player.");
+            return;
+        }
+
+        haPlayer.PlayMedia(mediaContentId, mediaContentType, enqueue, announce);
+    }
+
     public void TurnOn()
     {
         _logger.LogDebug("Sending on signal to media player.");

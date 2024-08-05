@@ -13,6 +13,7 @@ public interface IHassNowPlayingDaemon
     void NextTrack();
     void PreviousTrack();
     void Seek(long offset);
+    void PlayMedia(string mediaContentId, string mediaContentType, object enqueue, bool announce);
 
     void TurnOn();
     void TurnOff();
