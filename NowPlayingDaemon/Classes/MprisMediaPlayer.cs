@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using hass_mpris.HassClasses;
 using Microsoft.Extensions.Logging;
 using Tmds.DBus;
 
@@ -16,8 +17,17 @@ namespace NowPlayingDaemon
         readonly MprisPlayerProperties mprisPlayerProperties;
 
         public event Action<PropertyChanges> OnPropertiesChanged = delegate { };
-
+        public event Action OnRaise = delegate { };
+        public event Action OnQuit = delegate { };
+        public event Action OnPlay = delegate { };
+        public event Action OnPause = delegate { };
+        public event Action OnStop = delegate { };
         public event Action OnPlayPause = delegate { };
+        public event Action OnPrevious = delegate { };
+        public event Action OnNext = delegate { };
+        public event Action OnSeek = delegate { };
+        public event Action OnSetPosition = delegate { };
+        public event Action OnOpenUri = delegate { };
 
         public MprisMediaPlayer(ILogger<MprisMediaPlayer> logger)
         {
@@ -95,6 +105,11 @@ namespace NowPlayingDaemon
             return value;
         }
 
+        async Task IMprisMediaPlayer.SetAsync(dbusInterface iface, string property, object value)
+        {
+            await SetProperty(iface, property, value);
+        }
+
         async Task IPlayer.SetAsync(string property, object value)
         {
             await SetProperty(dbusInterface.IPlayer, property, value);
@@ -146,6 +161,15 @@ namespace NowPlayingDaemon
         public Task<IDisposable> WatchPropertiesAsync(Action<PropertyChanges> handler)
         {
             return SignalWatcher.AddAsync(this, nameof(OnPropertiesChanged), handler);
+        }
+
+        public Task SetPlaybackStatus(PlaybackStatus status)
+        {
+            mprisPlayerProperties.PlaybackStatus = status;
+            OnPropertiesChanged?.Invoke(
+                PropertyChanges.ForProperty("PlaybackStatus", status.ToString())
+            );
+            return Task.CompletedTask;
         }
 
         public Task UpdateMetadata(
@@ -221,43 +245,47 @@ namespace NowPlayingDaemon
 
         public Task RaiseAsync()
         {
-            _logger.LogDebug("RaiseAsync called.");
+            _logger.LogDebug("Received raise event.");
             throw new NotImplementedException();
+            OnRaise.Invoke();
             return Task.CompletedTask;
         }
 
         public Task QuitAsync()
         {
-            _logger.LogDebug("QuitAsync called.");
+            _logger.LogDebug("Received quit event.");
             throw new NotImplementedException();
+            OnQuit.Invoke();
             return Task.CompletedTask;
         }
 
         public Task PlayAsync()
         {
-            _logger.LogDebug("PlayAsync called.");
+            _logger.LogDebug("Received play event.");
             throw new NotImplementedException();
+            OnPlay.Invoke();
             return Task.CompletedTask;
         }
 
         public Task PauseAsync()
         {
-            _logger.LogDebug("PauseAsync called.");
-            _logger.LogInformation("PauseAsync");
+            _logger.LogDebug("Received pause event.");
             throw new NotImplementedException();
+            OnPause.Invoke();
             return Task.CompletedTask;
         }
 
         public Task StopAsync()
         {
-            _logger.LogDebug("StopAsync called.");
+            _logger.LogDebug("Received stop event.");
             throw new NotImplementedException();
+            OnStop.Invoke();
             return Task.CompletedTask;
         }
 
         public Task PlayPauseAsync()
         {
-            _logger.LogDebug("PlayPauseAsync called.");
+            _logger.LogDebug("Received playpause event.");
             if (!mprisPlayerProperties.CanPause)
             {
                 _logger.LogError("PlayPause operation is not allowed.");
@@ -272,35 +300,43 @@ namespace NowPlayingDaemon
 
         public Task PreviousAsync()
         {
-            _logger.LogDebug("PreviousAsync called.");
+            _logger.LogDebug("Reveived previous track event.");
 
             throw new NotImplementedException();
+            OnPrevious.Invoke();
             return Task.CompletedTask;
         }
 
         public Task NextAsync()
         {
-            _logger.LogDebug("NextAsync called.");
+            _logger.LogDebug("Received next track event.");
             throw new NotImplementedException();
+            OnNext.Invoke();
             return Task.CompletedTask;
         }
 
         public Task SeekAsync(long Offset)
         {
-            _logger.LogDebug("SeekAsync called.");
+            _logger.LogDebug("Received seek event.");
             throw new NotImplementedException();
+            OnSeek.Invoke();
+            return Task.CompletedTask;
         }
 
         public Task SetPositionAsync(ObjectPath TrackId, long Position)
         {
-            _logger.LogDebug("SetPositionAsync called.");
+            _logger.LogDebug("Received set position event.");
             throw new NotImplementedException();
+            OnSetPosition.Invoke();
+            return Task.CompletedTask;
         }
 
         public Task OpenUriAsync(string Uri)
         {
-            _logger.LogDebug("OpenUriAsync called.");
+            _logger.LogDebug("Received open uri event.");
             throw new NotImplementedException();
+            OnOpenUri.Invoke();
+            return Task.CompletedTask;
         }
     }
 }

@@ -73,6 +73,16 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
 
         _logger.LogDebug("Subscribing to player events.");
         haPlayer
+            .StateChanges()
+            .Subscribe(async s =>
+            {
+                _logger.LogDebug(
+                    $"The state of the player has changed from {s.Old?.State} to {s.New?.State}."
+                );
+                await UpdatePlayerState(s);
+            });
+
+        haPlayer
             .StateAllChanges()
             .Where(e => e.New?.Attributes?.MediaContentId != e.Old?.Attributes?.MediaContentId)
             .Subscribe(async s =>
@@ -91,6 +101,40 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         await UpdateMprisMetadata();
     }
 
+    public async Task UpdatePlayerState(
+        StateChange<MediaPlayerEntity, EntityState<MediaPlayerAttributes>> state
+    )
+    {
+        _logger.LogDebug($"Updating mpris player state.");
+
+        var newState = state?.New?.State;
+
+        if (newState == null)
+        {
+            return;
+        }
+
+        switch (newState)
+        {
+            case "paused":
+                await _mprisPlayer.SetPlaybackStatus(PlaybackStatus.Paused);
+                return;
+
+            case "playing":
+                await _mprisPlayer.SetPlaybackStatus(PlaybackStatus.Playing);
+                return;
+
+            case "off":
+            case "idle":
+                await _mprisPlayer.SetPlaybackStatus(PlaybackStatus.Stopped);
+                return;
+
+            default:
+                _logger.LogError($"Unknown player state '{newState}'");
+                return;
+        }
+    }
+
     public async Task UpdateMprisMetadata()
     {
         _logger.LogDebug($"Updating mpris player metadata.");
@@ -103,7 +147,6 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         }
 
         var trackId = haPlayer.Attributes?.MediaContentId ?? "";
-        var url = haPlayer.Attributes?.MediaContentId ?? "";
         var title = haPlayer.Attributes?.MediaTitle ?? "";
         var artist = haPlayer.Attributes?.MediaArtist ?? "";
         var album = haPlayer.Attributes?.MediaAlbumName ?? "";
@@ -125,7 +168,6 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         metadata.Add("xesam:artist", new string[] { artist });
         metadata.Add("xesam:albumArtist", new string[] { albumArtist });
         metadata.Add("xesam:title", title);
-        metadata.Add("xesam:url", url);
 
         _logger.LogInformation($"Now Playing: {artist}: {title}.");
 
