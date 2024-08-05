@@ -12,6 +12,7 @@ public interface IHassNowPlayingDaemon
     void Stop();
     void NextTrack();
     void PreviousTrack();
+    void Seek(long offset);
 
     void TurnOn();
     void TurnOff();

@@ -37,7 +37,7 @@ namespace NowPlayingDaemon
         public event Action OnPlayPause = delegate { };
         public event Action OnPrevious = delegate { };
         public event Action OnNext = delegate { };
-        public event Action OnSeek = delegate { };
+        public event Action<long> OnSeek = delegate { };
         public event Action OnSetPosition = delegate { };
         public event Action OnOpenUri = delegate { };
 
@@ -479,11 +479,19 @@ namespace NowPlayingDaemon
             return Task.CompletedTask;
         }
 
-        public Task SeekAsync(long Offset)
+        public Task SeekAsync(long offset)
         {
             _logger.LogDebug("Received seek event.");
-            throw new NotImplementedException();
-            OnSeek.Invoke();
+            if (!mprisPlayerProperties.CanControl || !mprisPlayerProperties.CanSeek)
+            {
+                _logger.LogError("Seek operation is not allowed.");
+                throw new DBusException(
+                    "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                    "Seek is not allowed."
+                );
+            }
+
+            OnSeek.Invoke(offset);
             return Task.CompletedTask;
         }
 

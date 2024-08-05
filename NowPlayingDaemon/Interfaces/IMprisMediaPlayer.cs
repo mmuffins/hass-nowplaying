@@ -18,13 +18,20 @@ public interface IMprisMediaPlayer
     Task SetCanQuit(bool state);
     Task SetCanGoPrevious(bool state);
     Task SetCanGoNext(bool state);
-
     Task RegisterPlayer(string identity, string desktopEntry);
-
     void UnregisterPlayer();
-
     Task RegisterService();
     Task UnregisterService();
+
+    Task RaiseAsync();
+    Task QuitAsync();
+    Task PlayAsync();
+    Task PauseAsync();
+    Task PlayPauseAsync();
+    Task StopAsync();
+    Task PreviousAsync();
+    Task NextAsync();
+    Task SeekAsync(long offset);
 
     event Action<PropertyChanges> OnPropertiesChanged;
     event Action OnRaise;
@@ -35,7 +42,7 @@ public interface IMprisMediaPlayer
     event Action OnPlayPause;
     event Action OnPrevious;
     event Action OnNext;
-    event Action OnSeek;
+    event Action<long> OnSeek;
     event Action OnSetPosition;
     event Action OnOpenUri;
 }

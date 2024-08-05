@@ -56,6 +56,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         _mprisPlayer.OnPause += Pause;
         _mprisPlayer.OnNext += NextTrack;
         _mprisPlayer.OnPrevious += PreviousTrack;
+        _mprisPlayer.OnSeek += Seek;
         _mprisPlayer.OnStop += Stop;
         _mprisPlayer.OnQuit += TurnOff;
     }
@@ -371,11 +372,21 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             return;
         }
 
-        // if (haPlayer.Attributes.ItemsInQueue == true)
-        // {
-        //     return;
-        // }
         haPlayer.MediaPreviousTrack();
+    }
+
+    public void Seek(long offset)
+    {
+        _logger.LogDebug($"Sending seek signal to with offset {offset} media player.");
+        var haContext = _hassContextProvider.GetContext();
+        var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
+        if (haPlayer == null)
+        {
+            _logger.LogError("Could not get media player.");
+            return;
+        }
+
+        haPlayer.MediaSeek(offset);
     }
 
     public void TurnOn()
