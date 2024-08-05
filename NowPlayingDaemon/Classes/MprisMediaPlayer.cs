@@ -520,8 +520,8 @@ namespace NowPlayingDaemon
                 "Open uri is not allowed."
             );
 
-            OnOpenUri.Invoke(Uri);
-            return Task.CompletedTask;
+            // OnOpenUri.Invoke(Uri);
+            // return Task.CompletedTask;
         }
     }
 }
