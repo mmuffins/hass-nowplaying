@@ -12,6 +12,7 @@ public interface IHassNowPlayingDaemon
     void Stop();
     void NextTrack();
     void PreviousTrack();
+    void Shuffle(bool enabled);
     void Seek(long offset);
     void PlayMedia(string mediaContentId, string mediaContentType, object enqueue, bool announce);
 

@@ -54,10 +54,11 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         _mprisPlayer.OnPlayPause += PlayPause;
         _mprisPlayer.OnPlay += Play;
         _mprisPlayer.OnPause += Pause;
+        _mprisPlayer.OnStop += Stop;
         _mprisPlayer.OnNext += NextTrack;
         _mprisPlayer.OnPrevious += PreviousTrack;
         _mprisPlayer.OnSeek += Seek;
-        _mprisPlayer.OnStop += Stop;
+        _mprisPlayer.OnShuffle += Shuffle;
         _mprisPlayer.OnQuit += TurnOff;
     }
 
@@ -80,6 +81,16 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         }
 
         _logger.LogDebug("Subscribing to player events.");
+
+        haPlayer
+            .StateAllChanges()
+            .Where(e => e.New?.Attributes?.MediaContentId != e.Old?.Attributes?.MediaContentId)
+            .Subscribe(async s =>
+            {
+                _logger.LogDebug($"The media content ID of the player has changed.");
+                await UpdateMprisMetadata(s.Entity);
+            });
+
         haPlayer
             .StateChanges()
             .Subscribe(async s =>
@@ -92,11 +103,11 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
 
         haPlayer
             .StateAllChanges()
-            .Where(e => e.New?.Attributes?.MediaContentId != e.Old?.Attributes?.MediaContentId)
+            .Where(e => e.New?.Attributes?.Shuffle != e.Old?.Attributes?.Shuffle)
             .Subscribe(async s =>
             {
-                _logger.LogDebug($"The media content ID of the player has changed.");
-                await UpdateMprisMetadata(s.Entity);
+                _logger.LogDebug($"Shuffle on the player was set to {s.New?.Attributes?.Shuffle}.");
+                await UpdatePlayerState(s.New);
             });
 
         await _mprisPlayer.RegisterPlayer(PlayerFriendlyName, PlayerDesktopEntry);
@@ -116,6 +127,8 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
 
         var newState = state.State;
 
+        var shuffle = state.Attributes?.Shuffle ?? false;
+
         _logger.LogDebug($"Updating mpris player state to {newState}.");
 
         switch (newState)
@@ -127,6 +140,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
                 await _mprisPlayer.SetCanQuit(true);
                 await _mprisPlayer.SetCanGoNext(true);
                 await _mprisPlayer.SetCanGoPrevious(true);
+                await _mprisPlayer.SetShuffle(shuffle);
                 await _mprisPlayer.RegisterService();
                 return;
 
@@ -137,6 +151,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
                 await _mprisPlayer.SetCanQuit(true);
                 await _mprisPlayer.SetCanGoNext(true);
                 await _mprisPlayer.SetCanGoPrevious(true);
+                await _mprisPlayer.SetShuffle(shuffle);
                 await _mprisPlayer.RegisterService();
                 return;
 
@@ -147,6 +162,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
                 await _mprisPlayer.SetCanQuit(true);
                 await _mprisPlayer.SetCanGoNext(true);
                 await _mprisPlayer.SetCanGoPrevious(true);
+                await _mprisPlayer.SetShuffle(shuffle);
                 await _mprisPlayer.RegisterService();
                 return;
 
@@ -157,6 +173,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
                 await _mprisPlayer.SetCanQuit(false);
                 await _mprisPlayer.SetCanGoNext(false);
                 await _mprisPlayer.SetCanGoPrevious(false);
+                await _mprisPlayer.SetShuffle(shuffle);
                 await _mprisPlayer.UnregisterService();
                 return;
 
@@ -165,8 +182,10 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
                 await _mprisPlayer.SetCanPlay(false);
                 await _mprisPlayer.SetCanPause(false);
                 await _mprisPlayer.SetCanQuit(false);
+                await _mprisPlayer.SetCanGoNext(false);
+                await _mprisPlayer.SetCanGoPrevious(false);
+                await _mprisPlayer.SetShuffle(shuffle);
                 await _mprisPlayer.UnregisterService();
-
                 return;
         }
     }
@@ -406,6 +425,25 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         }
 
         haPlayer.PlayMedia(mediaContentId, mediaContentType, enqueue, announce);
+    }
+
+    public void Shuffle(bool enabled)
+    {
+        _logger.LogDebug($"Setting shuffle to {enabled} on the media player.");
+        var haContext = _hassContextProvider.GetContext();
+        var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
+        if (haPlayer == null)
+        {
+            _logger.LogError("Could not get media player.");
+            return;
+        }
+
+        if (haPlayer.Attributes?.Shuffle == enabled)
+        {
+            return;
+        }
+
+        haPlayer.ShuffleSet(enabled);
     }
 
     public void TurnOn()

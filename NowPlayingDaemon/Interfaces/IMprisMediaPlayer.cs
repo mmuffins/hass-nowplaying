@@ -7,7 +7,6 @@ public interface IMprisMediaPlayer
     public ObjectPath ObjectPath { get; }
     public string ServiceName { get; }
 
-    Task SetAsync(dbusInterface iface, string property, object value);
     Task UpdateMetadata(string trackId, long length, string[] artist, string title, string album);
 
     Task UpdateMetadata(IDictionary<string, object> customMetadata);
@@ -18,6 +17,7 @@ public interface IMprisMediaPlayer
     Task SetCanQuit(bool state);
     Task SetCanGoPrevious(bool state);
     Task SetCanGoNext(bool state);
+    Task SetShuffle(bool state);
     Task RegisterPlayer(string identity, string desktopEntry);
     void UnregisterPlayer();
     Task RegisterService();
@@ -44,6 +44,7 @@ public interface IMprisMediaPlayer
     event Action OnPlayPause;
     event Action OnPrevious;
     event Action OnNext;
+    event Action<bool> OnShuffle;
     event Action<long> OnSeek;
     event Action<string, long> OnSetPosition;
     event Action<string> OnOpenUri;

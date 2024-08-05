@@ -38,6 +38,7 @@ namespace NowPlayingDaemon
         public event Action OnPrevious = delegate { };
         public event Action OnNext = delegate { };
         public event Action<long> OnSeek = delegate { };
+        public event Action<bool> OnShuffle = delegate { };
         public event Action<string, long> OnSetPosition = delegate { };
         public event Action<string> OnOpenUri = delegate { };
 
@@ -107,57 +108,32 @@ namespace NowPlayingDaemon
             return value;
         }
 
-        async Task IMprisMediaPlayer.SetAsync(dbusInterface iface, string property, object value)
+        public async Task SetAsync(string property, object value)
         {
-            await SetProperty(iface, property, value);
-        }
-
-        async Task IPlayer.SetAsync(string property, object value)
-        {
-            await SetProperty(dbusInterface.IPlayer, property, value);
-        }
-
-        async Task IMediaPlayer2.SetAsync(string property, object value)
-        {
-            await SetProperty(dbusInterface.IMediaPlayer2, property, value);
-        }
-
-        private Task SetProperty(dbusInterface iface, string property, object value)
-        {
-            _logger.LogInformation($"Setting property {property} on interface {iface}");
-
-            object targetObject = iface switch
+            // there aren't that many properties that are actually writable,
+            // so it's easier just call individual functions than to use reflection
+            switch (property.ToLower())
             {
-                dbusInterface.IMediaPlayer2 => mprisMediaPlayerProperties,
-                dbusInterface.IPlayer => mprisPlayerProperties,
-                _ => throw new ArgumentException("Invalid interface type")
-            };
+                case "shuffle":
+                    if (value is not bool shuffleState)
+                    {
+                        _logger.LogError(
+                            $"Invalid type for setting shuffle. Expected a boolean, got {value.GetType()}."
+                        );
+                        throw new ArgumentException("Value must be a boolean.", nameof(value));
+                    }
+                    await SetShuffle(shuffleState);
+                    break;
 
-            var propInfo = targetObject.GetType().GetField(property);
-
-            if (propInfo == null || propInfo.IsInitOnly)
-            {
-                _logger.LogError($"Attempted to set non-existent or readonly property: {property}");
-                throw new ArgumentException($"Property {property} not found or is readonly.");
+                default:
+                    _logger.LogError($"Setting property {property} is not allowed.");
+                    throw new DBusException(
+                        "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                        $"Setting property {property} is not allowed."
+                    );
             }
 
-            if (value.GetType() != propInfo.FieldType)
-            {
-                try
-                {
-                    value = Convert.ChangeType(value, propInfo.FieldType);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError($"Failed to convert type for {property}: {ex.Message}");
-                    throw;
-                }
-            }
-
-            propInfo.SetValue(targetObject, value);
-            OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty(property, value));
-
-            return Task.CompletedTask;
+            return;
         }
 
         public Task<IDisposable> WatchPropertiesAsync(Action<PropertyChanges> handler)
@@ -278,6 +254,19 @@ namespace NowPlayingDaemon
 
             mprisPlayerProperties.CanGoNext = state;
             OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty("CanGoNext", state.ToString()));
+            return Task.CompletedTask;
+        }
+
+        public Task SetShuffle(bool state)
+        {
+            if (mprisPlayerProperties.Shuffle == state)
+            {
+                return Task.CompletedTask;
+            }
+
+            mprisPlayerProperties.Shuffle = state;
+            OnShuffle.Invoke(state);
+            OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty("Shuffle", state));
             return Task.CompletedTask;
         }
 
@@ -508,6 +497,22 @@ namespace NowPlayingDaemon
             }
 
             OnSetPosition.Invoke(TrackId.ToString(), Position);
+            return Task.CompletedTask;
+        }
+
+        private Task ShuffleAsync(bool state)
+        {
+            _logger.LogDebug("Received next track event.");
+            if (!mprisPlayerProperties.CanControl || !mprisPlayerProperties.CanGoNext)
+            {
+                _logger.LogError("Next operation is not allowed.");
+                throw new DBusException(
+                    "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                    "Next is not allowed."
+                );
+            }
+
+            OnNext.Invoke();
             return Task.CompletedTask;
         }
 
