@@ -57,6 +57,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogDebug("Starting worker loop.");
+
         var haContext = _hassContextProvider.GetContext();
         var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
         if (haPlayer == null)
@@ -79,7 +80,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
                 _logger.LogDebug(
                     $"The state of the player has changed from {s.Old?.State} to {s.New?.State}."
                 );
-                await UpdatePlayerState(s);
+                await UpdatePlayerState(s.New);
             });
 
         haPlayer
@@ -88,63 +89,63 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             .Subscribe(async s =>
             {
                 _logger.LogDebug($"The media content ID of the player has changed.");
-                await UpdateMprisMetadata();
+                await UpdateMprisMetadata(s.Entity);
             });
 
-        await _mprisPlayer.RegisterPlayer(
-            _connectionManager.Connection,
-            PlayerFriendlyName,
-            PlayerDesktopEntry,
-            false
-        );
+        await _mprisPlayer.RegisterPlayer(PlayerFriendlyName, PlayerDesktopEntry);
+        await _mprisPlayer.RegisterService();
 
-        await UpdateMprisMetadata();
+        await UpdateMprisMetadata(haPlayer);
+        await UpdatePlayerState(haPlayer.EntityState);
     }
 
-    public async Task UpdatePlayerState(
-        StateChange<MediaPlayerEntity, EntityState<MediaPlayerAttributes>> state
-    )
+    public async Task UpdatePlayerState(EntityState<MediaPlayerAttributes>? state)
     {
-        _logger.LogDebug($"Updating mpris player state.");
-
-        var newState = state?.New?.State;
-
-        if (newState == null)
+        if (state == null)
         {
             return;
         }
+
+        var newState = state.State;
+
+        _logger.LogDebug($"Updating mpris player state to {newState}.");
 
         switch (newState)
         {
             case "paused":
                 await _mprisPlayer.SetPlaybackStatus(PlaybackStatus.Paused);
+                await _mprisPlayer.SetCanPlay(true);
+                await _mprisPlayer.RegisterService();
                 return;
 
             case "playing":
                 await _mprisPlayer.SetPlaybackStatus(PlaybackStatus.Playing);
+                await _mprisPlayer.SetCanPlay(true);
+                await _mprisPlayer.RegisterService();
+                return;
+
+            case "idle":
+                await _mprisPlayer.SetPlaybackStatus(PlaybackStatus.Stopped);
+                await _mprisPlayer.SetCanPlay(true);
                 return;
 
             case "off":
-            case "idle":
                 await _mprisPlayer.SetPlaybackStatus(PlaybackStatus.Stopped);
+                await _mprisPlayer.SetCanPlay(false);
+                await _mprisPlayer.UnregisterService();
                 return;
 
             default:
                 _logger.LogError($"Unknown player state '{newState}'");
+                await _mprisPlayer.SetCanPlay(false);
+
                 return;
         }
     }
 
-    public async Task UpdateMprisMetadata()
+    public async Task UpdateMprisMetadata(MediaPlayerEntity haPlayer)
     {
         _logger.LogDebug($"Updating mpris player metadata.");
-        var haContext = _hassContextProvider.GetContext();
-        var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
-        if (haPlayer == null)
-        {
-            _logger.LogError("Could not get media player.");
-            return;
-        }
 
         var trackId = haPlayer.Attributes?.MediaContentId ?? "";
         var title = haPlayer.Attributes?.MediaTitle ?? "";
@@ -152,13 +153,12 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         var album = haPlayer.Attributes?.MediaAlbumName ?? "";
         var albumArtist = haPlayer.Attributes?.MediaAlbumArtist ?? "";
         var length = haPlayer.Attributes?.MediaDuration ?? 0.0;
-        var position = haPlayer.Attributes?.MediaPosition ?? 0.0;
+        // var position = haPlayer.Attributes?.MediaPosition ?? 0.0;
         var artUrl = GetMediaUrl(haPlayer) ?? "";
 
         // var shuffle = haPlayer.Attributes?.Shuffle ?? false;
         // var repeat = haPlayer.Attributes?.Repeat ?? "";
         // var volume = haPlayer.Attributes?.VolumeLevel ?? 0.0;
-        // var state = haPlayer.State;
 
         var metadata = new Dictionary<string, object>();
         metadata.Add("mpris:trackid", trackId);

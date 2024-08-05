@@ -4,19 +4,23 @@ namespace NowPlayingDaemon;
 
 public interface IMprisMediaPlayer
 {
+    public ObjectPath ObjectPath { get; }
+    public string ServiceName { get; }
+
     Task SetAsync(dbusInterface iface, string property, object value);
     Task UpdateMetadata(string trackId, long length, string[] artist, string title, string album);
 
     Task UpdateMetadata(IDictionary<string, object> customMetadata);
 
     Task SetPlaybackStatus(PlaybackStatus status);
+    Task SetCanPlay(bool state);
 
-    Task RegisterPlayer(
-        Connection connection,
-        string identity,
-        string desktopEntry,
-        bool canControl
-    );
+    Task RegisterPlayer(string identity, string desktopEntry);
+
+    void UnregisterPlayer();
+
+    Task RegisterService();
+    Task UnregisterService();
 
     event Action<PropertyChanges> OnPropertiesChanged;
     event Action OnRaise;

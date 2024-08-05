@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Threading.Tasks.Dataflow;
 using hass_mpris.HassClasses;
 using Microsoft.Extensions.Logging;
 using Tmds.DBus;
@@ -12,9 +13,19 @@ namespace NowPlayingDaemon
         public ObjectPath ObjectPath => new ObjectPath("/org/mpris/MediaPlayer2");
 
         private readonly ILogger<MprisMediaPlayer> _logger;
+        private readonly DBusConnectionManager _connectionManager;
+
         readonly MprisMediaPlayerProperties mprisMediaPlayerProperties;
 
         readonly MprisPlayerProperties mprisPlayerProperties;
+
+        private string _serviceName;
+
+        public string ServiceName
+        {
+            get => _serviceName;
+            private set => _serviceName = value;
+        }
 
         public event Action<PropertyChanges> OnPropertiesChanged = delegate { };
         public event Action OnRaise = delegate { };
@@ -29,9 +40,15 @@ namespace NowPlayingDaemon
         public event Action OnSetPosition = delegate { };
         public event Action OnOpenUri = delegate { };
 
-        public MprisMediaPlayer(ILogger<MprisMediaPlayer> logger)
+        public MprisMediaPlayer(
+            ILogger<MprisMediaPlayer> logger,
+            DBusConnectionManager connectionManager
+        )
         {
-            this._logger = logger;
+            _logger = logger;
+            _connectionManager = connectionManager;
+            _serviceName = "";
+
             mprisMediaPlayerProperties = new MprisMediaPlayerProperties();
             mprisPlayerProperties = new MprisPlayerProperties();
         }
@@ -58,23 +75,6 @@ namespace NowPlayingDaemon
         {
             var value = GetProperty(dbusInterface.IMediaPlayer2, property);
             return Task.FromResult<object>(value);
-        }
-
-        public async Task RegisterPlayer(
-            Connection connection,
-            string identity,
-            string desktopEntry,
-            bool canControl
-        )
-        {
-            _logger.LogDebug("Registering player to dbus.");
-            mprisMediaPlayerProperties.Identity = identity;
-            mprisMediaPlayerProperties.DesktopEntry = desktopEntry;
-            mprisPlayerProperties.CanControl = canControl;
-            mprisPlayerProperties.CanPlay = true;
-
-            await connection.RegisterObjectAsync(this);
-            await connection.RegisterServiceAsync("org.mpris.MediaPlayer2.myplayer");
         }
 
         private object GetProperty(dbusInterface iface, string property)
@@ -163,12 +163,60 @@ namespace NowPlayingDaemon
             return SignalWatcher.AddAsync(this, nameof(OnPropertiesChanged), handler);
         }
 
+        public async Task RegisterPlayer(string identity, string desktopEntry)
+        {
+            _logger.LogDebug("Registering player to dbus.");
+            mprisMediaPlayerProperties.Identity = identity;
+            mprisMediaPlayerProperties.DesktopEntry = desktopEntry;
+
+            ServiceName = $"org.mpris.MediaPlayer2.{desktopEntry}";
+
+            await _connectionManager.Connection.RegisterObjectAsync(this);
+        }
+
+        public void UnregisterPlayer()
+        {
+            _logger.LogDebug("Unregistering player from dbus.");
+            _connectionManager.Connection.UnregisterObject(this);
+        }
+
+        private async Task<bool> IsServiceRegistered()
+        {
+            var allServices = await _connectionManager.Connection.ListServicesAsync();
+            return allServices.Any(s => s == ServiceName);
+        }
+
+        public async Task RegisterService()
+        {
+            if (!await IsServiceRegistered())
+            {
+                _logger.LogDebug("Registering service to dbus.");
+                await _connectionManager.Connection.RegisterServiceAsync(ServiceName);
+            }
+        }
+
+        public async Task UnregisterService()
+        {
+            if (await IsServiceRegistered())
+            {
+                _logger.LogDebug("UnRegistering service from dbus.");
+                await _connectionManager.Connection.UnregisterServiceAsync(ServiceName);
+            }
+        }
+
         public Task SetPlaybackStatus(PlaybackStatus status)
         {
             mprisPlayerProperties.PlaybackStatus = status;
             OnPropertiesChanged?.Invoke(
                 PropertyChanges.ForProperty("PlaybackStatus", status.ToString())
             );
+            return Task.CompletedTask;
+        }
+
+        public Task SetCanPlay(bool state)
+        {
+            mprisPlayerProperties.CanPlay = state;
+            OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty("CanPlay", state.ToString()));
             return Task.CompletedTask;
         }
 
