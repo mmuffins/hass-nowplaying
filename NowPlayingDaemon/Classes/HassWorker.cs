@@ -8,9 +8,9 @@ using NetDaemon.HassModel.Entities;
 namespace NowPlayingDaemon;
 
 [NetDaemonApp]
-public class Worker : BackgroundService, IHassNowPlayingDaemon
+public class HassWorker : BackgroundService, IHassNowPlayingDaemon
 {
-    private readonly ILogger<Worker> _logger;
+    private readonly ILogger<HassWorker> _logger;
     private readonly DBusConnectionManager _connectionManager;
     private readonly IMprisMediaPlayer _mprisPlayer;
     private readonly IHassContextProvider _hassContextProvider;
@@ -22,8 +22,8 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
     public string PlayerFriendlyName { get; set; } = "Home Assistant";
     public string PlayerDesktopEntry { get; set; } = "hass-nowplaying";
 
-    public Worker(
-        ILogger<Worker> logger,
+    public HassWorker(
+        ILogger<HassWorker> logger,
         IConfiguration config,
         IHassContextProvider hassContextProvider,
         DBusConnectionManager connectionManager,
@@ -59,6 +59,11 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
         _logger.LogDebug("Starting worker loop.");
         var haContext = _hassContextProvider.GetContext();
         var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
+        if (haPlayer == null)
+        {
+            _logger.LogError("Could not get media player.");
+            return;
+        }
 
         var friendlyName = haPlayer.Attributes?.FriendlyName;
         if (!string.IsNullOrEmpty(friendlyName))
@@ -66,6 +71,7 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
             PlayerFriendlyName = friendlyName;
         }
 
+        _logger.LogDebug("Subscribing to player events.");
         haPlayer
             .StateAllChanges()
             .Where(e => e.New?.Attributes?.MediaContentId != e.Old?.Attributes?.MediaContentId)
@@ -90,6 +96,11 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
         _logger.LogDebug($"Updating mpris player metadata.");
         var haContext = _hassContextProvider.GetContext();
         var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
+        if (haPlayer == null)
+        {
+            _logger.LogError("Could not get media player.");
+            return;
+        }
 
         var trackId = haPlayer.Attributes?.MediaContentId ?? "";
         var url = haPlayer.Attributes?.MediaContentId ?? "";
@@ -166,23 +177,44 @@ public class Worker : BackgroundService, IHassNowPlayingDaemon
         return string.Empty;
     }
 
-    private MediaPlayerEntity GetMediaPlayerEntity(IHaContext haContext, string name)
+    private MediaPlayerEntity? GetMediaPlayerEntity(IHaContext haContext, string name)
     {
         _logger.LogDebug($"Getting media player {name}.");
         // var haPlayerX = new Entity<MediaPlayerAttributes>(haContext, MediaPlayerEntityName);
 
-        return haContext
+        IEnumerable<MediaPlayerEntity> foundEntities = haContext
             .GetAllEntities()
             .Where(e => e.EntityId == name)
-            .Select(e => new MediaPlayerEntity(e))
-            .First();
+            .Select(e => new MediaPlayerEntity(e));
+
+        if (foundEntities.Count() == 0)
+        {
+            _logger.LogError($"Could not find entity with name '{name}'.");
+            return null;
+        }
+
+        if (foundEntities.Count() > 1)
+        {
+            string allNames = string.Join(", ", foundEntities.Select(p => p.EntityId));
+            _logger.LogError(
+                $"Found multiple entities matching provided name '{name}': {allNames}"
+            );
+            return null;
+        }
+
+        return foundEntities.First();
     }
 
     public void PlayPause()
     {
-        _logger.LogDebug("Sending PlayPause signal to player.");
+        _logger.LogDebug("Sending PlayPause signal to media player.");
         var haContext = _hassContextProvider.GetContext();
         var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
+        if (haPlayer == null)
+        {
+            _logger.LogError("Could not get media player.");
+            return;
+        }
 
         haPlayer.MediaPlayPause();
     }

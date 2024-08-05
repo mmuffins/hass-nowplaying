@@ -57,6 +57,7 @@ namespace NowPlayingDaemon
             bool canControl
         )
         {
+            _logger.LogDebug("Registering player to dbus.");
             mprisMediaPlayerProperties.Identity = identity;
             mprisMediaPlayerProperties.DesktopEntry = desktopEntry;
             mprisPlayerProperties.CanControl = canControl;
