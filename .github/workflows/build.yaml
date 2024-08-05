@@ -59,7 +59,7 @@ jobs:
         cp "${{ github.workspace }}/appsettings.json" "${{ github.workspace }}/publish/tarball/hass-nowplaying"
         cp "${{ github.workspace }}/hass-nowplaying.service" "${{ github.workspace }}/publish/tarball/hass-nowplaying"
         cd tarball
-        tar -czvf hass-nowplaying.tar.gz *
+        tar -czvf hass-nowplaying_${{ env.version }}.tar.gz *
         rm -r hass-nowplaying
 
     - name: Upload artifact
@@ -156,39 +156,48 @@ jobs:
         path: ${{ github.workspace }}/publish
 
 
-    # - name: Create release
-    #   uses: actions/github-script@v7
-    #   id: create-release
-    #   with:
-    #     github-token: ${{ secrets.GITHUB_TOKEN }}
-    #     script: |
-    #       const {data: newRelease} = await github.rest.repos.createRelease({
-    #         owner: context.repo.owner,
-    #         repo: context.repo.repo,
-    #         name: 'Home Assistant Now Playing Daemon ${{ env.version  }}',
-    #         tag_name: '${{ env.version  }}',
-    #         generate_release_notes: true,
-    #         draft: false,
-    #         prerelease: false
-    #       });
-    #       console.log(`Release has been created with id ${newRelease.id}: ${newRelease.html_url}`)
-    #       core.setOutput("url", newRelease.html_url)
-    #       core.setOutput("id", newRelease.id)
+    - name: Create release
+      uses: actions/github-script@v7
+      id: create-release
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const {data: newRelease} = await github.rest.repos.createRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            name: 'Home Assistant Now Playing Daemon ${{ env.version  }}',
+            tag_name: '${{ env.version  }}',
+            generate_release_notes: true,
+            draft: false,
+            prerelease: false
+          });
+          console.log(`Release has been created with id ${newRelease.id}: ${newRelease.html_url}`)
+          core.setOutput("url", newRelease.html_url)
+          core.setOutput("id", newRelease.id)
           
-    # - name: Upload Release Assets
-    #   uses: actions/github-script@v7
-    #   with:
-    #     github-token: ${{ secrets.GITHUB_TOKEN }}
-    #     script: |
-    #       const fs = require('fs').promises
+    - name: Upload Release Assets
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const fs = require('fs').promises;
+          const path = require('path');
 
-    #       const attachment = await fs.readFile("./publish/hass-nowplaying.tar.gz")
-    #       await github.rest.repos.uploadReleaseAsset({
-    #         owner: context.repo.owner,
-    #         repo: context.repo.repo,
-    #         release_id: '${{ steps.create-release.outputs.id }}',
-    #         data: attachment,
-    #         name: 'hass-nowplaying.tar.gz'
-    #       });
+          const files = [
+            path.join('${{ github.workspace }}', 'publish', 'hass-nowplaying_${{ env.version }}.tar.gz'),
+            path.join('${{ github.workspace }}', 'publish', '${{ env.package_name }}_${{ env.version }}.deb')
+          ];
 
+          // Loop through the array and upload each file
+          for (const file of files) {
+            console.log(`Uploading file ${file}`);
+            const data = await fs.readFile(file);
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: ${{ steps.create-release.outputs.id }},
+              data,
+              name: path.basename(file)
+            });
+          }
 
