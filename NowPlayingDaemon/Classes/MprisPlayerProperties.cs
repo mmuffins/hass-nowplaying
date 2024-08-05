@@ -36,7 +36,7 @@ public class MprisPlayerProperties
         Position = 0;
         MinimumRate = 0;
         MaximumRate = 0;
-        CanControl = false;
+        CanControl = true;
         Metadata = new Dictionary<string, object>
         {
             { "mpris:trackid", "0" },
