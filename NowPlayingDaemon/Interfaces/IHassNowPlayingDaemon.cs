@@ -7,6 +7,8 @@ namespace NowPlayingDaemon;
 public interface IHassNowPlayingDaemon
 {
     void PlayPause();
+    void Play();
+    void Pause();
     public Task UpdateMprisMetadata(MediaPlayerEntity haPlayer);
     public Task UpdatePlayerState(EntityState<MediaPlayerAttributes>? state);
 }

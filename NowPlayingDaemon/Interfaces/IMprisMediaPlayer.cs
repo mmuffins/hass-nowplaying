@@ -14,6 +14,7 @@ public interface IMprisMediaPlayer
 
     Task SetPlaybackStatus(PlaybackStatus status);
     Task SetCanPlay(bool state);
+    Task SetCanPause(bool state);
 
     Task RegisterPlayer(string identity, string desktopEntry);
 

@@ -19,6 +19,7 @@ namespace NowPlayingDaemon
 
         readonly MprisPlayerProperties mprisPlayerProperties;
 
+        private bool _serviceIsRegistered;
         private string _serviceName;
 
         public string ServiceName
@@ -48,6 +49,7 @@ namespace NowPlayingDaemon
             _logger = logger;
             _connectionManager = connectionManager;
             _serviceName = "";
+            _serviceIsRegistered = false;
 
             mprisMediaPlayerProperties = new MprisMediaPlayerProperties();
             mprisPlayerProperties = new MprisPlayerProperties();
@@ -182,25 +184,29 @@ namespace NowPlayingDaemon
 
         private async Task<bool> IsServiceRegistered()
         {
+            // currently not in use since I'm trying to see if a simple
+            // bool property is enough to keep track of the registration status
             var allServices = await _connectionManager.Connection.ListServicesAsync();
             return allServices.Any(s => s == ServiceName);
         }
 
         public async Task RegisterService()
         {
-            if (!await IsServiceRegistered())
+            if (!_serviceIsRegistered)
             {
                 _logger.LogDebug("Registering service to dbus.");
                 await _connectionManager.Connection.RegisterServiceAsync(ServiceName);
+                _serviceIsRegistered = true;
             }
         }
 
         public async Task UnregisterService()
         {
-            if (await IsServiceRegistered())
+            if (_serviceIsRegistered)
             {
                 _logger.LogDebug("UnRegistering service from dbus.");
                 await _connectionManager.Connection.UnregisterServiceAsync(ServiceName);
+                _serviceIsRegistered = false;
             }
         }
 
@@ -215,8 +221,25 @@ namespace NowPlayingDaemon
 
         public Task SetCanPlay(bool state)
         {
+            if (mprisPlayerProperties.CanPlay == state)
+            {
+                return Task.CompletedTask;
+            }
+
             mprisPlayerProperties.CanPlay = state;
             OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty("CanPlay", state.ToString()));
+            return Task.CompletedTask;
+        }
+
+        public Task SetCanPause(bool state)
+        {
+            if (mprisPlayerProperties.CanPause == state)
+            {
+                return Task.CompletedTask;
+            }
+
+            mprisPlayerProperties.CanPause = state;
+            OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty("CanPause", state.ToString()));
             return Task.CompletedTask;
         }
 
@@ -310,7 +333,15 @@ namespace NowPlayingDaemon
         public Task PlayAsync()
         {
             _logger.LogDebug("Received play event.");
-            throw new NotImplementedException();
+            if (!mprisPlayerProperties.CanControl || !mprisPlayerProperties.CanPlay)
+            {
+                _logger.LogError("Play operation is not allowed.");
+                throw new DBusException(
+                    "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                    "Play is not allowed."
+                );
+            }
+
             OnPlay.Invoke();
             return Task.CompletedTask;
         }
@@ -318,7 +349,14 @@ namespace NowPlayingDaemon
         public Task PauseAsync()
         {
             _logger.LogDebug("Received pause event.");
-            throw new NotImplementedException();
+            if (!mprisPlayerProperties.CanControl || !mprisPlayerProperties.CanPause)
+            {
+                _logger.LogError("Pause operation is not allowed.");
+                throw new DBusException(
+                    "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                    "Pause is not allowed."
+                );
+            }
             OnPause.Invoke();
             return Task.CompletedTask;
         }
@@ -334,7 +372,7 @@ namespace NowPlayingDaemon
         public Task PlayPauseAsync()
         {
             _logger.LogDebug("Received playpause event.");
-            if (!mprisPlayerProperties.CanPause)
+            if (!mprisPlayerProperties.CanControl || !mprisPlayerProperties.CanPause)
             {
                 _logger.LogError("PlayPause operation is not allowed.");
                 throw new DBusException(
@@ -342,7 +380,7 @@ namespace NowPlayingDaemon
                     "PlayPause is not allowed."
                 );
             }
-            OnPlayPause?.Invoke();
+            OnPlayPause.Invoke();
             return Task.CompletedTask;
         }
 

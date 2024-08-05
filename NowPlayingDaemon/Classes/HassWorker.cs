@@ -52,6 +52,8 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         MediaPlayerEntityName = mediaPlayerEntity;
 
         _mprisPlayer.OnPlayPause += PlayPause;
+        _mprisPlayer.OnPlay += Play;
+        _mprisPlayer.OnPause += Pause;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -115,23 +117,28 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             case "paused":
                 await _mprisPlayer.SetPlaybackStatus(PlaybackStatus.Paused);
                 await _mprisPlayer.SetCanPlay(true);
+                await _mprisPlayer.SetCanPause(true);
                 await _mprisPlayer.RegisterService();
                 return;
 
             case "playing":
                 await _mprisPlayer.SetPlaybackStatus(PlaybackStatus.Playing);
                 await _mprisPlayer.SetCanPlay(true);
+                await _mprisPlayer.SetCanPause(true);
                 await _mprisPlayer.RegisterService();
                 return;
 
             case "idle":
                 await _mprisPlayer.SetPlaybackStatus(PlaybackStatus.Stopped);
                 await _mprisPlayer.SetCanPlay(true);
+                await _mprisPlayer.SetCanPause(true);
+                await _mprisPlayer.RegisterService();
                 return;
 
             case "off":
                 await _mprisPlayer.SetPlaybackStatus(PlaybackStatus.Stopped);
                 await _mprisPlayer.SetCanPlay(false);
+                await _mprisPlayer.SetCanPause(true);
                 await _mprisPlayer.UnregisterService();
                 return;
 
@@ -249,7 +256,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
 
     public void PlayPause()
     {
-        _logger.LogDebug("Sending PlayPause signal to media player.");
+        _logger.LogDebug("Sending playpause signal to media player.");
         var haContext = _hassContextProvider.GetContext();
         var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
         if (haPlayer == null)
@@ -259,5 +266,33 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         }
 
         haPlayer.MediaPlayPause();
+    }
+
+    public void Play()
+    {
+        _logger.LogDebug("Sending play signal to media player.");
+        var haContext = _hassContextProvider.GetContext();
+        var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
+        if (haPlayer == null)
+        {
+            _logger.LogError("Could not get media player.");
+            return;
+        }
+
+        haPlayer.MediaPlay();
+    }
+
+    public void Pause()
+    {
+        _logger.LogDebug("Sending pause signal to media player.");
+        var haContext = _hassContextProvider.GetContext();
+        var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
+        if (haPlayer == null)
+        {
+            _logger.LogError("Could not get media player.");
+            return;
+        }
+
+        haPlayer.MediaPause();
     }
 }
