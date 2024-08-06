@@ -8,7 +8,7 @@ on:
   pull_request:
 
 env:
-  version: "0.0.${{ github.run_number }}${{ github.run_attempt }}"
+  version: "1.0.${{ github.run_number }}${{ github.run_attempt }}"
   package_name: hass-nowplaying
 
 
