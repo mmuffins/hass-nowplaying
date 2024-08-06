@@ -39,6 +39,7 @@ namespace NowPlayingDaemon
         public event Action OnNext = delegate { };
         public event Action<long> OnSeek = delegate { };
         public event Action<bool> OnShuffle = delegate { };
+        public event Action<LoopStatus> OnLoopStatus = delegate { };
         public event Action<string, long> OnSetPosition = delegate { };
         public event Action<string> OnOpenUri = delegate { };
 
@@ -123,6 +124,20 @@ namespace NowPlayingDaemon
                         throw new ArgumentException("Value must be a boolean.", nameof(value));
                     }
                     await SetShuffle(shuffleState);
+                    break;
+
+                case "loopstatus":
+                    if (value is not LoopStatus loopstatus)
+                    {
+                        _logger.LogError(
+                            $"Invalid type for setting loop status. Expected a string, got {value.GetType()}."
+                        );
+                        throw new ArgumentException(
+                            "Value must be a string containing the loop status.",
+                            nameof(value)
+                        );
+                    }
+                    await SetLoopStatus(loopstatus);
                     break;
 
                 default:
@@ -267,6 +282,21 @@ namespace NowPlayingDaemon
             mprisPlayerProperties.Shuffle = state;
             OnShuffle.Invoke(state);
             OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty("Shuffle", state));
+            return Task.CompletedTask;
+        }
+
+        public Task SetLoopStatus(LoopStatus loopStatus)
+        {
+            if (mprisPlayerProperties.LoopStatus == loopStatus)
+            {
+                return Task.CompletedTask;
+            }
+
+            mprisPlayerProperties.LoopStatus = loopStatus;
+            OnLoopStatus.Invoke(loopStatus);
+            OnPropertiesChanged?.Invoke(
+                PropertyChanges.ForProperty("LoopStatus", loopStatus.ToString())
+            );
             return Task.CompletedTask;
         }
 

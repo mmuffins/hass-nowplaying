@@ -18,6 +18,7 @@ public interface IMprisMediaPlayer
     Task SetCanGoPrevious(bool state);
     Task SetCanGoNext(bool state);
     Task SetShuffle(bool state);
+    Task SetLoopStatus(LoopStatus loopstatus);
     Task RegisterPlayer(string identity, string desktopEntry);
     void UnregisterPlayer();
     Task RegisterService();
@@ -45,6 +46,7 @@ public interface IMprisMediaPlayer
     event Action OnPrevious;
     event Action OnNext;
     event Action<bool> OnShuffle;
+    event Action<LoopStatus> OnLoopStatus;
     event Action<long> OnSeek;
     event Action<string, long> OnSetPosition;
     event Action<string> OnOpenUri;

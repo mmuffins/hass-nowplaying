@@ -14,7 +14,6 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
     private readonly DBusConnectionManager _connectionManager;
     private readonly IMprisMediaPlayer _mprisPlayer;
     private readonly IHassContextProvider _hassContextProvider;
-
     private readonly UriBuilder hassUrl;
 
     public string MediaPlayerEntityName { get; set; }
@@ -59,6 +58,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         _mprisPlayer.OnPrevious += PreviousTrack;
         _mprisPlayer.OnSeek += Seek;
         _mprisPlayer.OnShuffle += Shuffle;
+        _mprisPlayer.OnLoopStatus += LoopStatus;
         _mprisPlayer.OnQuit += TurnOff;
     }
 
@@ -110,6 +110,15 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
                 await UpdatePlayerState(s.New);
             });
 
+        haPlayer
+            .StateAllChanges()
+            .Where(e => e.New?.Attributes?.Repeat != e.Old?.Attributes?.Repeat)
+            .Subscribe(async s =>
+            {
+                _logger.LogDebug($"Repeat on the player was set to {s.New?.Attributes?.Repeat}.");
+                await UpdatePlayerState(s.New);
+            });
+
         await _mprisPlayer.RegisterPlayer(PlayerFriendlyName, PlayerDesktopEntry);
 
         await UpdatePlayerState(haPlayer.EntityState);
@@ -128,8 +137,13 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         var newState = state.State;
 
         var shuffle = state.Attributes?.Shuffle ?? false;
+        var repeatState = StringtoRepeat(state.Attributes?.Repeat ?? "off");
 
         _logger.LogDebug($"Updating mpris player state to {newState}.");
+
+        // some properties can always be propagated regardless of playback status
+        await _mprisPlayer.SetShuffle(shuffle);
+        await _mprisPlayer.SetLoopStatus((LoopStatus)(int)repeatState);
 
         switch (newState)
         {
@@ -140,7 +154,6 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
                 await _mprisPlayer.SetCanQuit(true);
                 await _mprisPlayer.SetCanGoNext(true);
                 await _mprisPlayer.SetCanGoPrevious(true);
-                await _mprisPlayer.SetShuffle(shuffle);
                 await _mprisPlayer.RegisterService();
                 return;
 
@@ -151,7 +164,6 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
                 await _mprisPlayer.SetCanQuit(true);
                 await _mprisPlayer.SetCanGoNext(true);
                 await _mprisPlayer.SetCanGoPrevious(true);
-                await _mprisPlayer.SetShuffle(shuffle);
                 await _mprisPlayer.RegisterService();
                 return;
 
@@ -162,7 +174,6 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
                 await _mprisPlayer.SetCanQuit(true);
                 await _mprisPlayer.SetCanGoNext(true);
                 await _mprisPlayer.SetCanGoPrevious(true);
-                await _mprisPlayer.SetShuffle(shuffle);
                 await _mprisPlayer.RegisterService();
                 return;
 
@@ -173,7 +184,6 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
                 await _mprisPlayer.SetCanQuit(false);
                 await _mprisPlayer.SetCanGoNext(false);
                 await _mprisPlayer.SetCanGoPrevious(false);
-                await _mprisPlayer.SetShuffle(shuffle);
                 await _mprisPlayer.UnregisterService();
                 return;
 
@@ -184,7 +194,6 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
                 await _mprisPlayer.SetCanQuit(false);
                 await _mprisPlayer.SetCanGoNext(false);
                 await _mprisPlayer.SetCanGoPrevious(false);
-                await _mprisPlayer.SetShuffle(shuffle);
                 await _mprisPlayer.UnregisterService();
                 return;
         }
@@ -446,6 +455,30 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         haPlayer.ShuffleSet(enabled);
     }
 
+    public void LoopStatus(LoopStatus loopStatus)
+    {
+        Repeat((RepeatState)(int)loopStatus);
+    }
+
+    public void Repeat(RepeatState repeatState)
+    {
+        _logger.LogDebug($"Setting repeat mode to {repeatState} on the media player.");
+        var haContext = _hassContextProvider.GetContext();
+        var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
+        if (haPlayer == null)
+        {
+            _logger.LogError("Could not get media player.");
+            return;
+        }
+
+        if (haPlayer.Attributes?.Repeat?.ToLower() == repeatState.ToString().ToLower())
+        {
+            return;
+        }
+
+        haPlayer.RepeatSet(repeatState);
+    }
+
     public void TurnOn()
     {
         _logger.LogDebug("Sending on signal to media player.");
@@ -482,5 +515,15 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         }
 
         haPlayer.TurnOff();
+    }
+
+    private static RepeatState StringtoRepeat(string? state)
+    {
+        return state?.ToLower() switch
+        {
+            "one" => RepeatState.one,
+            "all" => RepeatState.all,
+            _ => RepeatState.off
+        };
     }
 }
