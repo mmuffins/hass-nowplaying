@@ -1,5 +1,3 @@
-# mpris desktop file
-
 # Home Assistant Now Playing Daemon 
 This tool connects to home assistant and integrates with the linux D-Bus to display information about the currently playing media on media player 
 entities.

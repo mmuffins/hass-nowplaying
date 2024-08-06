@@ -1,4 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Threading.Tasks.Dataflow;
+using hass_mpris.HassClasses;
 using Microsoft.Extensions.Logging;
 using Tmds.DBus;
 
@@ -11,30 +13,60 @@ namespace NowPlayingDaemon
         public ObjectPath ObjectPath => new ObjectPath("/org/mpris/MediaPlayer2");
 
         private readonly ILogger<MprisMediaPlayer> _logger;
+        private readonly DBusConnectionManager _connectionManager;
+
         readonly MprisMediaPlayerProperties mprisMediaPlayerProperties;
 
         readonly MprisPlayerProperties mprisPlayerProperties;
 
-        public event Action<PropertyChanges> OnPropertiesChanged = delegate { };
+        private bool _serviceIsRegistered;
+        private string _serviceName;
 
-        public event Action OnPlayPause = delegate { };
-
-        public MprisMediaPlayer(ILogger<MprisMediaPlayer> logger)
+        public string ServiceName
         {
-            this._logger = logger;
+            get => _serviceName;
+            private set => _serviceName = value;
+        }
+
+        public event Action<PropertyChanges> OnPropertiesChanged = delegate { };
+        public event Action OnRaise = delegate { };
+        public event Action OnQuit = delegate { };
+        public event Action OnPlay = delegate { };
+        public event Action OnPause = delegate { };
+        public event Action OnStop = delegate { };
+        public event Action OnPlayPause = delegate { };
+        public event Action OnPrevious = delegate { };
+        public event Action OnNext = delegate { };
+        public event Action<long> OnSeek = delegate { };
+        public event Action<bool> OnShuffle = delegate { };
+        public event Action<double> OnVolume = delegate { };
+        public event Action<LoopStatus> OnLoopStatus = delegate { };
+        public event Action<string, long> OnSetPosition = delegate { };
+        public event Action<string> OnOpenUri = delegate { };
+
+        public MprisMediaPlayer(
+            ILogger<MprisMediaPlayer> logger,
+            DBusConnectionManager connectionManager
+        )
+        {
+            _logger = logger;
+            _connectionManager = connectionManager;
+            _serviceName = "";
+            _serviceIsRegistered = false;
+
             mprisMediaPlayerProperties = new MprisMediaPlayerProperties();
             mprisPlayerProperties = new MprisPlayerProperties();
         }
 
         Task<MprisMediaPlayerProperties> IMediaPlayer2.GetAllAsync()
         {
-            _logger.LogDebug("Getting all properties on interface IMediaPlayer2.");
+            _logger.LogTrace("Getting all properties on interface IMediaPlayer2.");
             return Task.FromResult(mprisMediaPlayerProperties);
         }
 
         Task<MprisPlayerProperties> IPlayer.GetAllAsync()
         {
-            _logger.LogDebug("Getting all properties on interface IPlayer.");
+            _logger.LogTrace("Getting all properties on interface IPlayer.");
             return Task.FromResult(mprisPlayerProperties);
         }
 
@@ -50,25 +82,9 @@ namespace NowPlayingDaemon
             return Task.FromResult<object>(value);
         }
 
-        public async Task RegisterPlayer(
-            Connection connection,
-            string identity,
-            string desktopEntry,
-            bool canControl
-        )
-        {
-            mprisMediaPlayerProperties.Identity = identity;
-            mprisMediaPlayerProperties.DesktopEntry = desktopEntry;
-            mprisPlayerProperties.CanControl = canControl;
-            mprisPlayerProperties.CanPlay = true;
-
-            await connection.RegisterObjectAsync(this);
-            await connection.RegisterServiceAsync("org.mpris.MediaPlayer2.myplayer");
-        }
-
         private object GetProperty(dbusInterface iface, string property)
         {
-            _logger.LogDebug($"Getting property {property} on interface {iface}");
+            _logger.LogTrace($"Getting property {property} on interface {iface}");
 
             object targetObject = iface switch
             {
@@ -94,57 +110,222 @@ namespace NowPlayingDaemon
             return value;
         }
 
-        async Task IPlayer.SetAsync(string property, object value)
+        public async Task SetAsync(string property, object value)
         {
-            await SetProperty(dbusInterface.IPlayer, property, value);
-        }
-
-        async Task IMediaPlayer2.SetAsync(string property, object value)
-        {
-            await SetProperty(dbusInterface.IMediaPlayer2, property, value);
-        }
-
-        private Task SetProperty(dbusInterface iface, string property, object value)
-        {
-            _logger.LogInformation($"Setting property {property} on interface {iface}");
-
-            object targetObject = iface switch
+            // there aren't that many properties that are actually writable,
+            // so it's easier just call individual functions than to use reflection
+            switch (property.ToLower())
             {
-                dbusInterface.IMediaPlayer2 => mprisMediaPlayerProperties,
-                dbusInterface.IPlayer => mprisPlayerProperties,
-                _ => throw new ArgumentException("Invalid interface type")
-            };
+                case "shuffle":
+                    if (value is not bool shuffleState)
+                    {
+                        _logger.LogError(
+                            $"Invalid type for setting shuffle. Expected a boolean, got {value.GetType()}."
+                        );
+                        throw new ArgumentException("Value must be a boolean.", nameof(value));
+                    }
+                    await SetShuffle(shuffleState);
+                    break;
 
-            var propInfo = targetObject.GetType().GetField(property);
+                case "loopstatus":
+                    if (value is not string loopstatus)
+                    {
+                        _logger.LogError(
+                            $"Invalid type for setting loop status. Expected a string, got {value.GetType()}."
+                        );
+                        throw new ArgumentException(
+                            "Value must be a string containing the loop status.",
+                            nameof(value)
+                        );
+                    }
 
-            if (propInfo == null || propInfo.IsInitOnly)
-            {
-                _logger.LogError($"Attempted to set non-existent or readonly property: {property}");
-                throw new ArgumentException($"Property {property} not found or is readonly.");
+                    await SetLoopStatus(StringToLoopStatus(loopstatus));
+                    break;
+
+                case "volume":
+                    if (value is not double volume)
+                    {
+                        _logger.LogError(
+                            $"Invalid type for setting volume. Expected a double, got {value.GetType()}."
+                        );
+                        throw new ArgumentException("Value must be a double.", nameof(value));
+                    }
+
+                    volume = volume < 0 ? 0 : volume;
+                    await SetVolume(volume);
+                    break;
+
+                default:
+                    _logger.LogError($"Setting property {property} is not allowed.");
+                    throw new DBusException(
+                        "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                        $"Setting property {property} is not allowed."
+                    );
             }
 
-            if (value.GetType() != propInfo.FieldType)
-            {
-                try
-                {
-                    value = Convert.ChangeType(value, propInfo.FieldType);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError($"Failed to convert type for {property}: {ex.Message}");
-                    throw;
-                }
-            }
-
-            propInfo.SetValue(targetObject, value);
-            OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty(property, value));
-
-            return Task.CompletedTask;
+            return;
         }
 
         public Task<IDisposable> WatchPropertiesAsync(Action<PropertyChanges> handler)
         {
             return SignalWatcher.AddAsync(this, nameof(OnPropertiesChanged), handler);
+        }
+
+        public async Task RegisterPlayer(string identity, string desktopEntry)
+        {
+            _logger.LogDebug("Registering player to dbus.");
+            mprisMediaPlayerProperties.Identity = identity;
+            mprisMediaPlayerProperties.DesktopEntry = desktopEntry;
+
+            ServiceName = $"org.mpris.MediaPlayer2.{desktopEntry}";
+
+            await _connectionManager.Connection.RegisterObjectAsync(this);
+        }
+
+        public void UnregisterPlayer()
+        {
+            _logger.LogDebug("Unregistering player from dbus.");
+            _connectionManager.Connection.UnregisterObject(this);
+        }
+
+        private async Task<bool> IsServiceRegistered()
+        {
+            // currently not in use since I'm trying to see if a simple
+            // bool property is enough to keep track of the registration status
+            var allServices = await _connectionManager.Connection.ListServicesAsync();
+            return allServices.Any(s => s == ServiceName);
+        }
+
+        public async Task RegisterService()
+        {
+            if (!_serviceIsRegistered)
+            {
+                _logger.LogDebug("Registering service to dbus.");
+                await _connectionManager.Connection.RegisterServiceAsync(ServiceName);
+                _serviceIsRegistered = true;
+            }
+        }
+
+        public async Task UnregisterService()
+        {
+            if (_serviceIsRegistered)
+            {
+                _logger.LogDebug("UnRegistering service from dbus.");
+                await _connectionManager.Connection.UnregisterServiceAsync(ServiceName);
+                _serviceIsRegistered = false;
+            }
+        }
+
+        public Task SetPlaybackStatus(PlaybackStatus status)
+        {
+            mprisPlayerProperties.PlaybackStatus = status.ToString();
+            OnPropertiesChanged?.Invoke(
+                PropertyChanges.ForProperty("PlaybackStatus", status.ToString())
+            );
+            return Task.CompletedTask;
+        }
+
+        public Task SetCanPlay(bool state)
+        {
+            if (mprisPlayerProperties.CanPlay == state)
+            {
+                return Task.CompletedTask;
+            }
+
+            mprisPlayerProperties.CanPlay = state;
+            OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty("CanPlay", state.ToString()));
+            return Task.CompletedTask;
+        }
+
+        public Task SetCanPause(bool state)
+        {
+            if (mprisPlayerProperties.CanPause == state)
+            {
+                return Task.CompletedTask;
+            }
+
+            mprisPlayerProperties.CanPause = state;
+            OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty("CanPause", state.ToString()));
+            return Task.CompletedTask;
+        }
+
+        public Task SetCanQuit(bool state)
+        {
+            if (mprisMediaPlayerProperties.CanQuit == state)
+            {
+                return Task.CompletedTask;
+            }
+
+            mprisMediaPlayerProperties.CanQuit = state;
+            OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty("CanQuit", state.ToString()));
+            return Task.CompletedTask;
+        }
+
+        public Task SetCanGoPrevious(bool state)
+        {
+            if (mprisPlayerProperties.CanGoPrevious == state)
+            {
+                return Task.CompletedTask;
+            }
+
+            mprisPlayerProperties.CanGoPrevious = state;
+            OnPropertiesChanged?.Invoke(
+                PropertyChanges.ForProperty("CanGoPrevious", state.ToString())
+            );
+            return Task.CompletedTask;
+        }
+
+        public Task SetCanGoNext(bool state)
+        {
+            if (mprisPlayerProperties.CanGoNext == state)
+            {
+                return Task.CompletedTask;
+            }
+
+            mprisPlayerProperties.CanGoNext = state;
+            OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty("CanGoNext", state.ToString()));
+            return Task.CompletedTask;
+        }
+
+        public Task SetShuffle(bool state)
+        {
+            if (mprisPlayerProperties.Shuffle == state)
+            {
+                return Task.CompletedTask;
+            }
+
+            mprisPlayerProperties.Shuffle = state;
+            OnShuffle.Invoke(state);
+            OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty("Shuffle", state));
+            return Task.CompletedTask;
+        }
+
+        public Task SetLoopStatus(LoopStatus loopStatus)
+        {
+            if (mprisPlayerProperties.LoopStatus.ToLower() == loopStatus.ToString().ToLower())
+            {
+                return Task.CompletedTask;
+            }
+
+            mprisPlayerProperties.LoopStatus = loopStatus.ToString();
+            OnLoopStatus.Invoke(loopStatus);
+            OnPropertiesChanged?.Invoke(
+                PropertyChanges.ForProperty("LoopStatus", loopStatus.ToString())
+            );
+            return Task.CompletedTask;
+        }
+
+        public Task SetVolume(double volume)
+        {
+            if (mprisPlayerProperties.Volume == volume)
+            {
+                return Task.CompletedTask;
+            }
+
+            mprisPlayerProperties.Volume = volume;
+            OnVolume.Invoke(volume);
+            OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty("Volume", volume));
+            return Task.CompletedTask;
         }
 
         public Task UpdateMetadata(
@@ -181,6 +362,7 @@ namespace NowPlayingDaemon
             OnPropertiesChanged?.Invoke(
                 PropertyChanges.ForProperty("Metadata", mprisPlayerProperties.Metadata)
             );
+
             return Task.CompletedTask;
         }
 
@@ -220,44 +402,86 @@ namespace NowPlayingDaemon
 
         public Task RaiseAsync()
         {
-            _logger.LogDebug("RaiseAsync called.");
-            throw new NotImplementedException();
+            _logger.LogDebug("Received raise event.");
+            if (!mprisMediaPlayerProperties.CanRaise)
+            {
+                _logger.LogError("Raise operation is not allowed.");
+                throw new DBusException(
+                    "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                    "Raise is not allowed."
+                );
+            }
+
+            OnRaise.Invoke();
             return Task.CompletedTask;
         }
 
         public Task QuitAsync()
         {
-            _logger.LogDebug("QuitAsync called.");
-            throw new NotImplementedException();
+            _logger.LogDebug("Received quit event.");
+            if (!mprisMediaPlayerProperties.CanQuit)
+            {
+                _logger.LogError("Quit operation is not allowed.");
+                throw new DBusException(
+                    "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                    "Quit is not allowed."
+                );
+            }
+
+            OnQuit.Invoke();
             return Task.CompletedTask;
         }
 
         public Task PlayAsync()
         {
-            _logger.LogDebug("PlayAsync called.");
-            throw new NotImplementedException();
+            _logger.LogDebug("Received play event.");
+            if (!mprisPlayerProperties.CanControl || !mprisPlayerProperties.CanPlay)
+            {
+                _logger.LogError("Play operation is not allowed.");
+                throw new DBusException(
+                    "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                    "Play is not allowed."
+                );
+            }
+
+            OnPlay.Invoke();
             return Task.CompletedTask;
         }
 
         public Task PauseAsync()
         {
-            _logger.LogDebug("PauseAsync called.");
-            _logger.LogInformation("PauseAsync");
-            throw new NotImplementedException();
+            _logger.LogDebug("Received pause event.");
+            if (!mprisPlayerProperties.CanControl || !mprisPlayerProperties.CanPause)
+            {
+                _logger.LogError("Pause operation is not allowed.");
+                throw new DBusException(
+                    "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                    "Pause is not allowed."
+                );
+            }
+            OnPause.Invoke();
             return Task.CompletedTask;
         }
 
         public Task StopAsync()
         {
-            _logger.LogDebug("StopAsync called.");
-            throw new NotImplementedException();
+            _logger.LogDebug("Received stop event.");
+            if (!mprisPlayerProperties.CanControl)
+            {
+                _logger.LogError("Stop operation is not allowed.");
+                throw new DBusException(
+                    "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                    "Stop is not allowed."
+                );
+            }
+            OnStop.Invoke();
             return Task.CompletedTask;
         }
 
         public Task PlayPauseAsync()
         {
-            _logger.LogDebug("PlayPauseAsync called.");
-            if (!mprisPlayerProperties.CanPause)
+            _logger.LogDebug("Received playpause event.");
+            if (!mprisPlayerProperties.CanControl || !mprisPlayerProperties.CanPause)
             {
                 _logger.LogError("PlayPause operation is not allowed.");
                 throw new DBusException(
@@ -265,41 +489,112 @@ namespace NowPlayingDaemon
                     "PlayPause is not allowed."
                 );
             }
-            OnPlayPause?.Invoke();
+            OnPlayPause.Invoke();
             return Task.CompletedTask;
         }
 
         public Task PreviousAsync()
         {
-            _logger.LogDebug("PreviousAsync called.");
+            _logger.LogDebug("Reveived previous track event.");
 
-            throw new NotImplementedException();
+            if (!mprisPlayerProperties.CanControl || !mprisPlayerProperties.CanGoPrevious)
+            {
+                _logger.LogError("Previous operation is not allowed.");
+                throw new DBusException(
+                    "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                    "Previous is not allowed."
+                );
+            }
+
+            OnPrevious.Invoke();
             return Task.CompletedTask;
         }
 
         public Task NextAsync()
         {
-            _logger.LogDebug("NextAsync called.");
-            throw new NotImplementedException();
+            _logger.LogDebug("Received next track event.");
+            if (!mprisPlayerProperties.CanControl || !mprisPlayerProperties.CanGoNext)
+            {
+                _logger.LogError("Next operation is not allowed.");
+                throw new DBusException(
+                    "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                    "Next is not allowed."
+                );
+            }
+
+            OnNext.Invoke();
             return Task.CompletedTask;
         }
 
-        public Task SeekAsync(long Offset)
+        public Task SeekAsync(long offset)
         {
-            _logger.LogDebug("SeekAsync called.");
-            throw new NotImplementedException();
+            _logger.LogDebug("Received seek event.");
+            if (!mprisPlayerProperties.CanControl || !mprisPlayerProperties.CanSeek)
+            {
+                _logger.LogError("Seek operation is not allowed.");
+                throw new DBusException(
+                    "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                    "Seek is not allowed."
+                );
+            }
+
+            OnSeek.Invoke(offset);
+            return Task.CompletedTask;
         }
 
         public Task SetPositionAsync(ObjectPath TrackId, long Position)
         {
-            _logger.LogDebug("SetPositionAsync called.");
-            throw new NotImplementedException();
+            _logger.LogDebug("Received set position event.");
+            if (!mprisPlayerProperties.CanControl || !mprisPlayerProperties.CanSeek)
+            {
+                _logger.LogError("set position operation is not allowed.");
+                throw new DBusException(
+                    "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                    "Set position is not allowed."
+                );
+            }
+
+            OnSetPosition.Invoke(TrackId.ToString(), Position);
+            return Task.CompletedTask;
+        }
+
+        private Task ShuffleAsync(bool state)
+        {
+            _logger.LogDebug("Received next track event.");
+            if (!mprisPlayerProperties.CanControl || !mprisPlayerProperties.CanGoNext)
+            {
+                _logger.LogError("Next operation is not allowed.");
+                throw new DBusException(
+                    "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                    "Next is not allowed."
+                );
+            }
+
+            OnNext.Invoke();
+            return Task.CompletedTask;
         }
 
         public Task OpenUriAsync(string Uri)
         {
-            _logger.LogDebug("OpenUriAsync called.");
-            throw new NotImplementedException();
+            _logger.LogDebug("Received open uri event.");
+            _logger.LogError("Open uri operation is not allowed.");
+            throw new DBusException(
+                "org.mpris.MediaPlayer2.Player.Error.NotAllowed",
+                "Open uri is not allowed."
+            );
+
+            // OnOpenUri.Invoke(Uri);
+            // return Task.CompletedTask;
+        }
+
+        private static LoopStatus StringToLoopStatus(string state)
+        {
+            return state?.ToLower() switch
+            {
+                "track" => LoopStatus.Track,
+                "playlist" => LoopStatus.Playlist,
+                _ => LoopStatus.None
+            };
         }
     }
 }

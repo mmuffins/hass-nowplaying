@@ -8,7 +8,9 @@ on:
   pull_request:
 
 env:
-  version: "0.0.${{ github.run_number }}${{ github.run_attempt }}"
+  version: "1.0.${{ github.run_number }}${{ github.run_attempt }}"
+  package_name: hass-nowplaying
+
 
 jobs:
   build:
@@ -39,6 +41,11 @@ jobs:
     - name: dotnet publish
       run: dotnet publish --configuration ${{ env.build_configuration }} --runtime ${{ env.build_runtime }} --framework ${{ env.build_framework }} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -p:PublishReadyToRun=false -p:Version=${{ env.version }} -p:PackageVersion=${{ env.version }} --output publish
 
+    - name: Set execute permissoins
+      run: |
+        cd "${{ github.workspace }}/publish/"
+        chmod +x hass-nowplaying
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
@@ -48,42 +55,41 @@ jobs:
     - name: Create tarball
       run: |
         cd "${{ github.workspace }}/publish/"
-        mkdir hass-nowplaying
         find . -name "*.pdb" -type f -delete
-        cp "${{ github.workspace }}/appsettings.json" "${{ github.workspace }}/publish/hass-nowplaying"
-        cp "${{ github.workspace }}/hassnowplaying.service" "${{ github.workspace }}/publish/hass-nowplaying"
-        tar -czvf hass-nowplaying.tar.gz *
+        mkdir -p tarball/${{ env.package_name }}
+        mv hass-nowplaying tarball/${{ env.package_name }}
+        cp "${{ github.workspace }}/appsettings.json" "${{ github.workspace }}/publish/tarball/${{ env.package_name }}"
+        cp "${{ github.workspace }}/hass-nowplaying.service" "${{ github.workspace }}/publish/tarball/${{ env.package_name }}"
+        cd tarball
+        tar -czvf ${{ env.package_name }}_${{ env.version }}.tar.gz *
         rm -r hass-nowplaying
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: tarball
-        path: ${{ github.workspace }}/publish
+        path: ${{ github.workspace }}/publish/tarball
 
     - name: dotnet test
       run: dotnet test --configuration ${{ env.build_configuration }} --framework ${{ env.build_framework }} --verbosity normal --logger "trx;LogFileName=TestResults.trx"
         
-    - name: Publish Unit Test Results
-      uses: dorny/test-reporter@v1
-      with:
-        name: Unit Test Results
-        path: Tests/**/TestResults.trx
-        reporter: dotnet-trx
+    # - name: Publish Unit Test Results
+    #   uses: dorny/test-reporter@v1
+    #   with:
+    #     name: Unit Test Results
+    #     path: Tests/**/TestResults.trx
+    #     reporter: dotnet-trx
 
   deb:
     runs-on: ubuntu-latest
     needs: build
-          
-    env:
-      package_name: hass-nowplaying
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Create folder structure
       run: |
-        cd "${{ github.workspace }}/packaging/deb"
+        cd "${{ github.workspace }}/packaging/deb/${{ env.package_name }}"
         mkdir -p usr/bin
         mkdir -p usr/share/${{ env.package_name }}
         mkdir -p usr/share/doc/${{ env.package_name }}
@@ -92,20 +98,24 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: build
-        path: ${{ github.workspace }}/packaging/deb/usr/bin
+        path: ${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/bin
 
     - name: Move additional files
       run: |
-        cd "${{ github.workspace }}/packaging/deb"
+        cd "${{ github.workspace }}/packaging/deb/${{ env.package_name }}"
+
+        chmod 755 "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/bin/${{ env.package_name }}"
+
         find . -name "*.pdb" -type f -delete
 
-        cp "${{ github.workspace }}/${{ env.package_name }}.service" "${{ github.workspace }}/packaging/deb/usr/share/${{ env.package_name }}"
-        cp "${{ github.workspace }}/appsettings.json" "${{ github.workspace }}/packaging/deb/usr/share/doc/${{ env.package_name }}"
-        cp "${{ github.workspace }}/README.md" "${{ github.workspace }}/packaging/deb/usr/share/doc/${{ env.package_name }}"
-        cp "${{ github.workspace }}/LICENSE" "${{ github.workspace }}/packaging/deb/usr/share/doc/${{ env.package_name }}"
+        cp "${{ github.workspace }}/${{ env.package_name }}.service" "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/share/${{ env.package_name }}"
+        cp "${{ github.workspace }}/appsettings.json" "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/share/doc/${{ env.package_name }}"
+        cp "${{ github.workspace }}/README.md" "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/share/doc/${{ env.package_name }}"
+        cp "${{ github.workspace }}/LICENSE" "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/share/doc/${{ env.package_name }}"
 
     - name: Build deb file
       run: |
+        mkdir -p "${{ github.workspace }}/publish"
         cd "${{ github.workspace }}/packaging/deb"
         dpkg-deb --build ${{ env.package_name }}
         mv ${{ env.package_name }}.deb "${{ github.workspace }}/publish/${{ env.package_name }}_${{ env.version }}.deb"
@@ -145,39 +155,48 @@ jobs:
         path: ${{ github.workspace }}/publish
 
 
-    # - name: Create release
-    #   uses: actions/github-script@v7
-    #   id: create-release
-    #   with:
-    #     github-token: ${{ secrets.GITHUB_TOKEN }}
-    #     script: |
-    #       const {data: newRelease} = await github.rest.repos.createRelease({
-    #         owner: context.repo.owner,
-    #         repo: context.repo.repo,
-    #         name: 'Home Assistant Now Playing Daemon ${{ env.version  }}',
-    #         tag_name: '${{ env.version  }}',
-    #         generate_release_notes: true,
-    #         draft: false,
-    #         prerelease: false
-    #       });
-    #       console.log(`Release has been created with id ${newRelease.id}: ${newRelease.html_url}`)
-    #       core.setOutput("url", newRelease.html_url)
-    #       core.setOutput("id", newRelease.id)
+    - name: Create release
+      uses: actions/github-script@v7
+      id: create-release
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const {data: newRelease} = await github.rest.repos.createRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            name: 'Home Assistant Now Playing Daemon ${{ env.version  }}',
+            tag_name: '${{ env.version  }}',
+            generate_release_notes: true,
+            draft: false,
+            prerelease: false
+          });
+          console.log(`Release has been created with id ${newRelease.id}: ${newRelease.html_url}`)
+          core.setOutput("url", newRelease.html_url)
+          core.setOutput("id", newRelease.id)
           
-    # - name: Upload Release Assets
-    #   uses: actions/github-script@v7
-    #   with:
-    #     github-token: ${{ secrets.GITHUB_TOKEN }}
-    #     script: |
-    #       const fs = require('fs').promises
+    - name: Upload Release Assets
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const fs = require('fs').promises;
+          const path = require('path');
 
-    #       const attachment = await fs.readFile("./publish/hass-nowplaying.tar.gz")
-    #       await github.rest.repos.uploadReleaseAsset({
-    #         owner: context.repo.owner,
-    #         repo: context.repo.repo,
-    #         release_id: '${{ steps.create-release.outputs.id }}',
-    #         data: attachment,
-    #         name: 'hass-nowplaying.tar.gz'
-    #       });
+          const files = [
+            path.join('${{ github.workspace }}', 'publish', '${{ env.package_name }}_${{ env.version }}.tar.gz'),
+            path.join('${{ github.workspace }}', 'publish', '${{ env.package_name }}_${{ env.version }}.deb')
+          ];
 
+          // Loop through the array and upload each file
+          for (const file of files) {
+            console.log(`Uploading file ${file}`);
+            const data = await fs.readFile(file);
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: ${{ steps.create-release.outputs.id }},
+              data,
+              name: path.basename(file)
+            });
+          }
 

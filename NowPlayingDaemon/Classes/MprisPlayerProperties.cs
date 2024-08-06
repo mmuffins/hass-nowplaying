@@ -11,8 +11,8 @@ public class MprisPlayerProperties
     public bool CanGoNext;
     public bool CanSeek;
     public bool CanControl;
-    public PlaybackStatus PlaybackStatus;
-    public LoopStatus LoopStatus;
+    public string PlaybackStatus;
+    public string LoopStatus;
     public double Rate;
     public bool Shuffle;
     public double Volume;
@@ -28,15 +28,15 @@ public class MprisPlayerProperties
         CanGoPrevious = false;
         CanGoNext = false;
         CanSeek = false;
-        PlaybackStatus = PlaybackStatus.Stopped;
-        LoopStatus = LoopStatus.None;
+        PlaybackStatus = "Stopped";
+        LoopStatus = "None";
         Rate = 0;
         Shuffle = false;
         Volume = 0;
         Position = 0;
         MinimumRate = 0;
         MaximumRate = 0;
-        CanControl = false;
+        CanControl = true;
         Metadata = new Dictionary<string, object>
         {
             { "mpris:trackid", "0" },
