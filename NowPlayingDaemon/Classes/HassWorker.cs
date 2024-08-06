@@ -491,7 +491,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             return;
         }
 
-        haPlayer.RepeatSet(repeatState);
+        haPlayer.RepeatSet(repeatState.ToString());
     }
 
     public void Volume(double volume)

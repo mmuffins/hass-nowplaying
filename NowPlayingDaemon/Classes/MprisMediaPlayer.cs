@@ -128,7 +128,7 @@ namespace NowPlayingDaemon
                     break;
 
                 case "loopstatus":
-                    if (value is not LoopStatus loopstatus)
+                    if (value is not string loopstatus)
                     {
                         _logger.LogError(
                             $"Invalid type for setting loop status. Expected a string, got {value.GetType()}."
@@ -138,7 +138,8 @@ namespace NowPlayingDaemon
                             nameof(value)
                         );
                     }
-                    await SetLoopStatus(loopstatus);
+
+                    await SetLoopStatus(StringToLoopStatus(loopstatus));
                     break;
 
                 case "volume":
@@ -217,7 +218,7 @@ namespace NowPlayingDaemon
 
         public Task SetPlaybackStatus(PlaybackStatus status)
         {
-            mprisPlayerProperties.PlaybackStatus = status;
+            mprisPlayerProperties.PlaybackStatus = status.ToString();
             OnPropertiesChanged?.Invoke(
                 PropertyChanges.ForProperty("PlaybackStatus", status.ToString())
             );
@@ -301,12 +302,12 @@ namespace NowPlayingDaemon
 
         public Task SetLoopStatus(LoopStatus loopStatus)
         {
-            if (mprisPlayerProperties.LoopStatus == loopStatus)
+            if (mprisPlayerProperties.LoopStatus.ToLower() == loopStatus.ToString().ToLower())
             {
                 return Task.CompletedTask;
             }
 
-            mprisPlayerProperties.LoopStatus = loopStatus;
+            mprisPlayerProperties.LoopStatus = loopStatus.ToString();
             OnLoopStatus.Invoke(loopStatus);
             OnPropertiesChanged?.Invoke(
                 PropertyChanges.ForProperty("LoopStatus", loopStatus.ToString())
@@ -584,6 +585,16 @@ namespace NowPlayingDaemon
 
             // OnOpenUri.Invoke(Uri);
             // return Task.CompletedTask;
+        }
+
+        private static LoopStatus StringToLoopStatus(string state)
+        {
+            return state?.ToLower() switch
+            {
+                "track" => LoopStatus.Track,
+                "playlist" => LoopStatus.Playlist,
+                _ => LoopStatus.None
+            };
         }
     }
 }
