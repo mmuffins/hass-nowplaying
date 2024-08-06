@@ -15,6 +15,7 @@ public interface IHassNowPlayingDaemon
     void Shuffle(bool enabled);
     void LoopStatus(LoopStatus loopStatus);
     void Repeat(RepeatState repeatState);
+    void Volume(double volume);
     void Seek(long offset);
     void PlayMedia(string mediaContentId, string mediaContentType, object enqueue, bool announce);
 

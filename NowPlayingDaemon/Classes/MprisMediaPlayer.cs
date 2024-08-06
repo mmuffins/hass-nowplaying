@@ -39,6 +39,7 @@ namespace NowPlayingDaemon
         public event Action OnNext = delegate { };
         public event Action<long> OnSeek = delegate { };
         public event Action<bool> OnShuffle = delegate { };
+        public event Action<double> OnVolume = delegate { };
         public event Action<LoopStatus> OnLoopStatus = delegate { };
         public event Action<string, long> OnSetPosition = delegate { };
         public event Action<string> OnOpenUri = delegate { };
@@ -138,6 +139,19 @@ namespace NowPlayingDaemon
                         );
                     }
                     await SetLoopStatus(loopstatus);
+                    break;
+
+                case "volume":
+                    if (value is not double volume)
+                    {
+                        _logger.LogError(
+                            $"Invalid type for setting volume. Expected a double, got {value.GetType()}."
+                        );
+                        throw new ArgumentException("Value must be a double.", nameof(value));
+                    }
+
+                    volume = volume < 0 ? 0 : volume;
+                    await SetVolume(volume);
                     break;
 
                 default:
@@ -297,6 +311,19 @@ namespace NowPlayingDaemon
             OnPropertiesChanged?.Invoke(
                 PropertyChanges.ForProperty("LoopStatus", loopStatus.ToString())
             );
+            return Task.CompletedTask;
+        }
+
+        public Task SetVolume(double volume)
+        {
+            if (mprisPlayerProperties.Volume == volume)
+            {
+                return Task.CompletedTask;
+            }
+
+            mprisPlayerProperties.Volume = volume;
+            OnVolume.Invoke(volume);
+            OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty("Volume", volume));
             return Task.CompletedTask;
         }
 

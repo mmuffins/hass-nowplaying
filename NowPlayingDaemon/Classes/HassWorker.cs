@@ -59,6 +59,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         _mprisPlayer.OnSeek += Seek;
         _mprisPlayer.OnShuffle += Shuffle;
         _mprisPlayer.OnLoopStatus += LoopStatus;
+        _mprisPlayer.OnVolume += Volume;
         _mprisPlayer.OnQuit += TurnOff;
     }
 
@@ -119,6 +120,17 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
                 await UpdatePlayerState(s.New);
             });
 
+        haPlayer
+            .StateAllChanges()
+            .Where(e => e.New?.Attributes?.VolumeLevel != e.Old?.Attributes?.VolumeLevel)
+            .Subscribe(async s =>
+            {
+                _logger.LogDebug(
+                    $"Volume on the player was set to {s.New?.Attributes?.VolumeLevel}."
+                );
+                await UpdatePlayerState(s.New);
+            });
+
         await _mprisPlayer.RegisterPlayer(PlayerFriendlyName, PlayerDesktopEntry);
 
         await UpdatePlayerState(haPlayer.EntityState);
@@ -138,12 +150,15 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
 
         var shuffle = state.Attributes?.Shuffle ?? false;
         var repeatState = StringtoRepeat(state.Attributes?.Repeat ?? "off");
+        var volume = state.Attributes?.VolumeLevel ?? 0.0;
+        volume = volume < 0 ? 0 : volume;
 
         _logger.LogDebug($"Updating mpris player state to {newState}.");
 
         // some properties can always be propagated regardless of playback status
         await _mprisPlayer.SetShuffle(shuffle);
         await _mprisPlayer.SetLoopStatus((LoopStatus)(int)repeatState);
+        await _mprisPlayer.SetVolume(volume);
 
         switch (newState)
         {
@@ -477,6 +492,27 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         }
 
         haPlayer.RepeatSet(repeatState);
+    }
+
+    public void Volume(double volume)
+    {
+        _logger.LogDebug($"Setting player volume to {volume}.");
+        var haContext = _hassContextProvider.GetContext();
+        var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
+        if (haPlayer == null)
+        {
+            _logger.LogError("Could not get media player.");
+            return;
+        }
+
+        volume = volume < 0 ? 0 : volume;
+
+        if (haPlayer.Attributes?.VolumeLevel == volume)
+        {
+            return;
+        }
+
+        haPlayer.VolumeSet(volume);
     }
 
     public void TurnOn()
