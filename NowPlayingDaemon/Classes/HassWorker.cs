@@ -224,12 +224,10 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         var album = haPlayer.Attributes?.MediaAlbumName ?? "";
         var albumArtist = haPlayer.Attributes?.MediaAlbumArtist ?? "";
         var length = haPlayer.Attributes?.MediaDuration ?? 0.0;
-        // var position = haPlayer.Attributes?.MediaPosition ?? 0.0;
         var artUrl = GetMediaUrl(haPlayer) ?? "";
 
-        // var shuffle = haPlayer.Attributes?.Shuffle ?? false;
-        // var repeat = haPlayer.Attributes?.Repeat ?? "";
-        // var volume = haPlayer.Attributes?.VolumeLevel ?? 0.0;
+        // seems like home assistant doesn't publish the media position via its api
+        // var position = haPlayer.Attributes?.MediaPosition ?? 0.0;
 
         var metadata = new Dictionary<string, object>();
         metadata.Add("mpris:trackid", trackId);
