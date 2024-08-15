@@ -45,6 +45,7 @@ The following options are supported in the configuration file:
   - `Ssl` - Boolean value indicating whether to use SSL/TLS to connect to Home Assistant.
   - `Token` - Long-lived access to authenticate with Home Assistant.
 - `MediaplayerEntity` - The entity ID of the media player in Home Assistant to connect to.
+- `MediaArtSize` - Size of the media cover art in pixels. If not set, it defaults to using the original artwork size. Set to 0 if you explicitly want to always use the full artwork size.
 
 # Running the application
 ## Interactively
