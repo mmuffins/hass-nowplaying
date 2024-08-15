@@ -20,6 +20,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
 
     public string PlayerFriendlyName { get; set; } = "Home Assistant";
     public string PlayerDesktopEntry { get; set; } = "hass-nowplaying";
+    public int MediaArtSize { get; set; } = 0;
 
     public HassWorker(
         ILogger<HassWorker> logger,
@@ -33,6 +34,17 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         _hassContextProvider = hassContextProvider;
         _connectionManager = connectionManager;
         _mprisPlayer = iMprisMediaPlayer;
+
+        int configMediaArtSize;
+        if (
+            !int.TryParse(config.GetSection("MediaArtSize").Value, out configMediaArtSize)
+            || configMediaArtSize < 1
+        )
+        {
+            configMediaArtSize = 0;
+        }
+
+        MediaArtSize = configMediaArtSize;
 
         hassUrl = new UriBuilder
         {
@@ -224,7 +236,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         var album = haPlayer.Attributes?.MediaAlbumName ?? "";
         var albumArtist = haPlayer.Attributes?.MediaAlbumArtist ?? "";
         var length = haPlayer.Attributes?.MediaDuration ?? 0.0;
-        var artUrl = GetMediaUrl(haPlayer) ?? "";
+        var artUrl = GetMediaArtUrl(haPlayer, MediaArtSize) ?? "";
 
         // seems like home assistant doesn't publish the media position via its api
         // var position = haPlayer.Attributes?.MediaPosition ?? 0.0;
@@ -243,7 +255,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         await _mprisPlayer.UpdateMetadata(metadata);
     }
 
-    private string GetMediaUrl(MediaPlayerEntity haPlayer)
+    private string GetMediaArtUrl(MediaPlayerEntity haPlayer, int imageSize)
     {
         // how the image uri is provided can very greatly between players
         // so we need to check each possible values
@@ -261,15 +273,20 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
                 continue;
             }
 
+            // The duplicated unescape is intentional, home assistant seems to encode some
+            // urls multiple times for some reason
+            var decodedImage = Uri.UnescapeDataString(Uri.UnescapeDataString(image));
+
             // check if the value already is a valid uri
             // if not, it's most likely a relative uri
-            var decodedImage = Uri.UnescapeDataString(image);
+
             Uri? imageUri;
             if (
                 Uri.TryCreate(decodedImage, UriKind.Absolute, out imageUri)
                 && (imageUri.Scheme == Uri.UriSchemeHttp || imageUri.Scheme == Uri.UriSchemeHttps)
             )
             {
+                imageUri = SetArtSizeParameter(imageUri, imageSize);
                 return imageUri.ToString();
             }
 
@@ -281,11 +298,26 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
                 ) && (imageUri.Scheme == Uri.UriSchemeHttp || imageUri.Scheme == Uri.UriSchemeHttps)
             )
             {
+                imageUri = SetArtSizeParameter(imageUri, imageSize);
                 return imageUri.ToString();
             }
         }
 
         return string.Empty;
+    }
+
+    private Uri SetArtSizeParameter(Uri uri, int newSize)
+    {
+        var builder = new UriBuilder(uri);
+        var query = System.Web.HttpUtility.ParseQueryString(builder.Query);
+
+        if (query["size"] != null)
+        {
+            query["size"] = newSize.ToString();
+        }
+
+        builder.Query = query.ToString();
+        return builder.Uri;
     }
 
     private MediaPlayerEntity? GetMediaPlayerEntity(IHaContext haContext, string name)

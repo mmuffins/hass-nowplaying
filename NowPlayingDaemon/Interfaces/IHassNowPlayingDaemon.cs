@@ -6,6 +6,11 @@ namespace NowPlayingDaemon;
 
 public interface IHassNowPlayingDaemon
 {
+    string MediaPlayerEntityName { get; set; }
+    string PlayerFriendlyName { get; set; }
+    string PlayerDesktopEntry { get; set; }
+    int MediaArtSize { get; set; }
+
     void PlayPause();
     void Play();
     void Pause();
