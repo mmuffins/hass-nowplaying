@@ -113,6 +113,11 @@ jobs:
         cp "${{ github.workspace }}/README.md" "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/share/doc/${{ env.package_name }}"
         cp "${{ github.workspace }}/LICENSE" "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/share/doc/${{ env.package_name }}"
 
+    - name: Update control file version
+      run: |
+        cd "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/DEBIAN"
+        sed -i "s/Version: .*$/Version: ${{ env.version }}-1/" control
+
     - name: Build deb file
       run: |
         mkdir -p "${{ github.workspace }}/publish"
