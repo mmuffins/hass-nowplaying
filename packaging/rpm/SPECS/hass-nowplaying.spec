@@ -4,19 +4,11 @@ Release: %{release}%{?dist}
 Summary: Controls Home Assistant media players.
 License: MIT
 BuildArch: %{buildarch}
-Source0: %{name}-%{version}.tar.gz
+
+%global __strip /bin/true
 
 %description
 Controls Home Assistant media players.
-
-%prep
-# %setup -q
-#echo "BUILDROOT = $RPM_BUILD_ROOT"
-#mkdir -p $RPM_BUILD_ROOT/usr/share/doc/%{name}
-
-#cp /home/mmuffins/source/%{name}/LICENSE $RPM_BUILD_ROOT/usr/share/doc/%{name}
-#cp /home/mmuffins/source/%{name}/README.md $RPM_BUILD_ROOT/usr/share/doc/%{name}
-#exit
 
 %install
 rm -rf $RPM_BUILD_ROOT
