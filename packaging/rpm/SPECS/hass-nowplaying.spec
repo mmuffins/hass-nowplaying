@@ -1,6 +1,6 @@
 Name: hass-nowplaying
 Version: %{version}
-Release: 1%{?dist}
+Release: %{release}%{?dist}
 Summary: Allows control of Home Assistant media players.
 License: MIT
 BuildArch: %{buildarch}

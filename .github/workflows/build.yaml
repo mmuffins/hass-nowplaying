@@ -11,6 +11,7 @@ env:
   version: "1.0.${{ github.run_number }}${{ github.run_attempt }}"
   package_name: hass-nowplaying
   rpm_arch: x86_64
+  rpm_release: 1
 
 jobs:
   build:
@@ -134,10 +135,11 @@ jobs:
         rpmbuild -bb ./SPECS/${{ env.package_name }}.spec \
           --define "_topdir $PWD" \
           --define "version ${{ env.version }}" \
+          --define "release ${{ env.rpm_release }}" \
           --define "buildarch ${{ env.rpm_arch }}"
 
         ls -alR
-        mv ./RPMS/${{ env.rpm_arch }}/${{ env.package_name }}-${{ env.version }}-${{ env.rpm_arch }}.rpm "${{ github.workspace }}/publish/"
+        mv ./RPMS/${{ env.rpm_arch }}/${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}-${{ env.rpm_arch }}.rpm "${{ github.workspace }}/publish/"
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -148,8 +150,8 @@ jobs:
     - name: Check rpm file
       run: |
         cd "${{ github.workspace }}/publish"
-        rpm -qip ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_arch }}.rpm
-        sudo rpm -ivh ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_arch }}.rpm
+        rpm -qip ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}-${{ env.rpm_arch }}.rpm
+        sudo rpm -ivh ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}-${{ env.rpm_arch }}.rpm
 
   deb:
     runs-on: ubuntu-latest
@@ -266,7 +268,7 @@ jobs:
           const files = [
             path.join('${{ github.workspace }}', 'publish', '${{ env.package_name }}_${{ env.version }}.tar.gz'),
             path.join('${{ github.workspace }}', 'publish', '${{ env.package_name }}_${{ env.version }}.deb'),
-            path.join('${{ github.workspace }}', 'publish', '${{ env.package_name }}-${{ env.version }}-${{ env.rpm_arch }}.rpm')
+            path.join('${{ github.workspace }}', 'publish', '${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}-${{ env.rpm_arch }}.rpm')
           ];
 
           // Loop through the array and upload each file
