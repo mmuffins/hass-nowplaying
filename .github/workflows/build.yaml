@@ -10,7 +10,7 @@ on:
 env:
   version: "1.0.${{ github.run_number }}${{ github.run_attempt }}"
   package_name: hass-nowplaying
-
+  rpm_arch: x86_64
 
 jobs:
   build:
@@ -80,6 +80,74 @@ jobs:
     #     path: Tests/**/TestResults.trx
     #     reporter: dotnet-trx
 
+  rpm:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Create folder structure
+      run: |
+        cd "${{ github.workspace }}/packaging/rpm"
+        mkdir -p BUILD
+        mkdir -p BUILDROOT
+        mkdir -p RPMS
+        mkdir -p SOURCES
+        mkdir -p SRPMS
+
+    - name: Get artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build
+        path: ${{ github.workspace }}/packaging/rpm/SOURCES
+
+    - name: Move additional files
+      run: |
+        cd "${{ github.workspace }}/packaging/rpm"
+
+        find . -name "*.pdb" -type f -delete
+
+        cp "${{ github.workspace }}/${{ env.package_name }}.service" "./SOURCES"
+        cp "${{ github.workspace }}/appsettings.json" "./SOURCES"
+        cp "${{ github.workspace }}/README.md" "./SOURCES"
+        cp "${{ github.workspace }}/LICENSE" "./SOURCES"
+
+    - name: debug
+      run: |
+        cd "${{ github.workspace }}/packaging/rpm"
+        ls -alR
+
+    - name: Update control file version
+      run: |
+        cd "${{ github.workspace }}/packaging/rpm/SPECS"
+        sed -i "s/Version: .*$/Version: ${{ env.version }}-1/" ${{ env.package_name }}.spec
+
+    - name: Build rpm file
+      run: |
+        mkdir -p "${{ github.workspace }}/publish"
+        cd "${{ github.workspace }}/packaging/rpm"
+        rpmbuild -bb ./SPECS/${{ env.package_name }}spec \
+          --define "_topdir $PWD" \
+          --define "version ${{ env.version }}" \
+          --define "buildarch ${{ env.rpm_arch }}"
+
+        ls -alR
+        mv ./RPMS/${{ env.rpm_arch }}/${{ env.package_name }}-${{ env.version }}-${{ env.rpm_arch }}.rpm "${{ github.workspace }}/publish/"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: rpm
+        path: ${{ github.workspace }}/publish
+
+    - name: Check rpm file
+      run: |
+        cd "${{ github.workspace }}/publish"
+        rpm -qip ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_arch }}.rpm
+        sudo rpm -ivh ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_arch }}.rpm
+
+
   deb:
     runs-on: ubuntu-latest
     needs: build
@@ -108,10 +176,10 @@ jobs:
 
         find . -name "*.pdb" -type f -delete
 
-        cp "${{ github.workspace }}/${{ env.package_name }}.service" "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/share/${{ env.package_name }}"
-        cp "${{ github.workspace }}/appsettings.json" "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/share/doc/${{ env.package_name }}"
-        cp "${{ github.workspace }}/README.md" "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/share/doc/${{ env.package_name }}"
-        cp "${{ github.workspace }}/LICENSE" "${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/share/doc/${{ env.package_name }}"
+        cp "${{ github.workspace }}/${{ env.package_name }}.service" "./usr/share/${{ env.package_name }}"
+        cp "${{ github.workspace }}/appsettings.json" "./usr/share/doc/${{ env.package_name }}"
+        cp "${{ github.workspace }}/README.md" "./usr/share/doc/${{ env.package_name }}"
+        cp "${{ github.workspace }}/LICENSE" "./usr/share/doc/${{ env.package_name }}"
 
     - name: Update control file version
       run: |
@@ -140,7 +208,7 @@ jobs:
   release:
     if: ${{ github.event_name != 'pull_request'  && github.ref_name == 'main' }}
     runs-on: ubuntu-latest
-    needs: [build, deb]
+    needs: [build, deb, rpm]
     permissions:
       contents: write
 
@@ -159,6 +227,11 @@ jobs:
         name: deb
         path: ${{ github.workspace }}/publish
 
+    - name: Get rpm
+      uses: actions/download-artifact@v4
+      with:
+        name: rpm
+        path: ${{ github.workspace }}/publish
 
     - name: Create release
       uses: actions/github-script@v7
@@ -189,7 +262,8 @@ jobs:
 
           const files = [
             path.join('${{ github.workspace }}', 'publish', '${{ env.package_name }}_${{ env.version }}.tar.gz'),
-            path.join('${{ github.workspace }}', 'publish', '${{ env.package_name }}_${{ env.version }}.deb')
+            path.join('${{ github.workspace }}', 'publish', '${{ env.package_name }}_${{ env.version }}.deb'),
+            path.join('${{ github.workspace }}', 'publish', '${{ env.package_name }}-${{ env.version }}-${{ env.rpm_arch }}.rpm')
           ];
 
           // Loop through the array and upload each file
