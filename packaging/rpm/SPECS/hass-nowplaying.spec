@@ -37,6 +37,8 @@ install -m 644 %{_sourcedir}/LICENSE $RPM_BUILD_ROOT/%{_datadir}/doc/%{name}
 %attr(0644, root, root) %{_datadir}/doc/%{name}/appsettings.json
 %attr(0644, root, root) %{_datadir}/doc/%{name}/README.md
 %attr(0644, root, root) %{_datadir}/doc/%{name}/LICENSE
+%dir %{_datadir}/%{name}
+%dir %{_datadir}/doc/%{name}
 
 %post
 echo "To configure the application, copy the included example configuration file to your .config directory:"
