@@ -24,13 +24,15 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/%{_bindir}
 mkdir -p $RPM_BUILD_ROOT/%{_datadir}/doc/%{name}
 
-install -m 755 %{_sourcedir}/hass-nowplaying $RPM_BUILD_ROOT/%{_bindir}
+install -m 755 %{_sourcedir}/%{name} $RPM_BUILD_ROOT/%{_bindir}
+install -m 644 %{_sourcedir}/%{name}.service $RPM_BUILD_ROOT/%{_datadir}/%{name}
 install -m 644 %{_sourcedir}/appsettings.json $RPM_BUILD_ROOT/%{_datadir}/doc/%{name}
 install -m 644 %{_sourcedir}/README.md $RPM_BUILD_ROOT/%{_datadir}/doc/%{name}
 install -m 644 %{_sourcedir}/LICENSE $RPM_BUILD_ROOT/%{_datadir}/doc/%{name}
 
 %files
-%attr(0755, root, root) %{_bindir}/hass-nowplaying
+%attr(0755, root, root) %{_bindir}/%{name}
+%attr(0644, root, root) %{_datadir}/%{name}/%{name}.service
 %attr(0644, root, root) %{_datadir}/doc/%{name}/appsettings.json
 %attr(0644, root, root) %{_datadir}/doc/%{name}/README.md
 %attr(0644, root, root) %{_datadir}/doc/%{name}/LICENSE

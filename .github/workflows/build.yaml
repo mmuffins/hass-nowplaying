@@ -118,16 +118,20 @@ jobs:
         cd "${{ github.workspace }}/packaging/rpm"
         ls -alR
 
-    - name: Update control file version
+    - name: debug2
       run: |
-        cd "${{ github.workspace }}/packaging/rpm/SPECS"
-        sed -i "s/Version: .*$/Version: ${{ env.version }}-1/" ${{ env.package_name }}.spec
+        mkdir -p "${{ github.workspace }}/publish"
+        cd "${{ github.workspace }}/packaging/rpm"
+        echo "PWD - $PWD"
 
     - name: Build rpm file
       run: |
         mkdir -p "${{ github.workspace }}/publish"
         cd "${{ github.workspace }}/packaging/rpm"
-        rpmbuild -bb ./SPECS/${{ env.package_name }}spec \
+
+        echo "PWD - $PWD"
+
+        rpmbuild -bb ./SPECS/${{ env.package_name }}.spec \
           --define "_topdir $PWD" \
           --define "version ${{ env.version }}" \
           --define "buildarch ${{ env.rpm_arch }}"
@@ -146,7 +150,6 @@ jobs:
         cd "${{ github.workspace }}/publish"
         rpm -qip ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_arch }}.rpm
         sudo rpm -ivh ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_arch }}.rpm
-
 
   deb:
     runs-on: ubuntu-latest
