@@ -4,7 +4,8 @@ Release: %{release}%{?dist}
 Summary: Controls Home Assistant media players.
 License: MIT
 BuildArch: %{buildarch}
-Source0: %{name}-%{version}.tar.gz
+
+%define _binary_payload w9.gzdio
 
 %description
 Controls Home Assistant media players.
