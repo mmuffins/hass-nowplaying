@@ -107,23 +107,10 @@ jobs:
       run: |
         cd "${{ github.workspace }}/packaging/rpm"
 
-        find . -name "*.pdb" -type f -delete
-
         cp "${{ github.workspace }}/${{ env.package_name }}.service" "./SOURCES"
         cp "${{ github.workspace }}/appsettings.json" "./SOURCES"
         cp "${{ github.workspace }}/README.md" "./SOURCES"
         cp "${{ github.workspace }}/LICENSE" "./SOURCES"
-
-    - name: debug
-      run: |
-        cd "${{ github.workspace }}/packaging/rpm"
-        ls -alR
-
-    - name: debug2
-      run: |
-        mkdir -p "${{ github.workspace }}/publish"
-        cd "${{ github.workspace }}/packaging/rpm"
-        echo "PWD - $PWD"
 
     - name: Build rpm file
       run: |
@@ -151,7 +138,9 @@ jobs:
       run: |
         cd "${{ github.workspace }}/publish"
         rpm -qip ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}.${{ env.rpm_arch }}.rpm
-        sudo rpm -ivh ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}.${{ env.rpm_arch }}.rpm
+        
+        # github uses ubuntu based runners, so rpm doesn't manage to install the package natively
+        sudo alien -k -i ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}.${{ env.rpm_arch }}.rpm
 
   deb:
     runs-on: ubuntu-latest
