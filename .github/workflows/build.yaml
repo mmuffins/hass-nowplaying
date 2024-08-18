@@ -114,6 +114,11 @@ jobs:
 
     - name: Build rpm file
       run: |
+        cd "${{ github.workspace }}/packaging/rpm"
+        ls -alR
+
+    - name: Build rpm file
+      run: |
         mkdir -p "${{ github.workspace }}/publish"
         cd "${{ github.workspace }}/packaging/rpm"
 
@@ -125,8 +130,12 @@ jobs:
           --define "release ${{ env.rpm_release }}" \
           --define "buildarch ${{ env.rpm_arch }}"
 
-        ls -alR
         mv ./RPMS/${{ env.rpm_arch }}/${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}.${{ env.rpm_arch }}.rpm "${{ github.workspace }}/publish/"
+
+    - name: Build rpm file
+      run: |
+        cd "${{ github.workspace }}/packaging/rpm"
+        ls -alR
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
