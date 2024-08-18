@@ -1,6 +1,5 @@
 # Home Assistant Now Playing Daemon 
-This tool connects to home assistant and integrates with the linux D-Bus to display information about the currently playing media on media player 
-entities.
+hass-nowplaying connects to a local to home assistant instance and exposes its media players to the linux D-Bbus. This lets the local desktop display information about the currently playing media to be displayed on the and allows for remote control of the media player.
 
 # Setup
 ## Manual installation
