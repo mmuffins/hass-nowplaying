@@ -138,9 +138,6 @@ jobs:
       run: |
         cd "${{ github.workspace }}/publish"
         rpm -qip ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}.${{ env.rpm_arch }}.rpm
-        
-        # github uses ubuntu based runners, so rpm doesn't manage to install the package natively
-        sudo alien -k -i ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}.${{ env.rpm_arch }}.rpm
 
   deb:
     runs-on: ubuntu-latest
