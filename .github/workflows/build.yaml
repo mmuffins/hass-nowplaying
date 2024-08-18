@@ -139,7 +139,7 @@ jobs:
           --define "buildarch ${{ env.rpm_arch }}"
 
         ls -alR
-        mv ./RPMS/${{ env.rpm_arch }}/${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}-${{ env.rpm_arch }}.rpm "${{ github.workspace }}/publish/"
+        mv ./RPMS/${{ env.rpm_arch }}/${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}.${{ env.rpm_arch }}.rpm "${{ github.workspace }}/publish/"
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -150,8 +150,8 @@ jobs:
     - name: Check rpm file
       run: |
         cd "${{ github.workspace }}/publish"
-        rpm -qip ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}-${{ env.rpm_arch }}.rpm
-        sudo rpm -ivh ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}-${{ env.rpm_arch }}.rpm
+        rpm -qip ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}.${{ env.rpm_arch }}.rpm
+        sudo rpm -ivh ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}.${{ env.rpm_arch }}.rpm
 
   deb:
     runs-on: ubuntu-latest
@@ -268,7 +268,7 @@ jobs:
           const files = [
             path.join('${{ github.workspace }}', 'publish', '${{ env.package_name }}_${{ env.version }}.tar.gz'),
             path.join('${{ github.workspace }}', 'publish', '${{ env.package_name }}_${{ env.version }}.deb'),
-            path.join('${{ github.workspace }}', 'publish', '${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}-${{ env.rpm_arch }}.rpm')
+            path.join('${{ github.workspace }}', 'publish', '${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}.${{ env.rpm_arch }}.rpm')
           ];
 
           // Loop through the array and upload each file
