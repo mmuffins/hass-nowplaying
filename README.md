@@ -19,9 +19,20 @@ cp hass-nowplaying/appsettings.json ~/.config/hass-nowplaying
 ```
 
 ## Via deb file
-To install the application via deb file, download the latest deb file fro the releases section and install it with
+To install the application via deb file, download the latest version from the releases section and install it with
 ```bash
 dpkg -i hass-nowplaying.deb
+```
+Copy the example configuration file to the user directory
+```bash
+mkdir ~/.config/hass-nowplaying/
+cp /usr/share/doc/hass-nowplaying/appsettings.json ~/.config/hass-nowplaying/
+```
+
+## Via rpm file
+To install the application via rpm file, download the latest version from the releases section and install it with
+```bash
+rpm -ivh hass-nowplaying-<version>.rmp
 ```
 Copy the example configuration file to the user directory
 ```bash
