@@ -3,4 +3,4 @@ Version: 0.1-1
 Maintainer: mmuffins
 Architecture: amd64
 Priority: optional
-Description: Allows control of Home Assistant media players.
+Description: Controls Home Assistant media players.

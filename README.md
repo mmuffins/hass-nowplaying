@@ -1,6 +1,5 @@
 # Home Assistant Now Playing Daemon 
-This tool connects to home assistant and integrates with the linux D-Bus to display information about the currently playing media on media player 
-entities.
+hass-nowplaying connects to a local to home assistant instance and exposes its media players to the linux D-Bbus. This lets the local desktop display information about the currently playing media to be displayed on the and allows for remote control of the media player.
 
 # Setup
 ## Manual installation
@@ -19,9 +18,20 @@ cp hass-nowplaying/appsettings.json ~/.config/hass-nowplaying
 ```
 
 ## Via deb file
-To install the application via deb file, download the latest deb file fro the releases section and install it with
+To install the application via deb file, download the latest version from the releases section and install it with
 ```bash
 dpkg -i hass-nowplaying.deb
+```
+Copy the example configuration file to the user directory
+```bash
+mkdir ~/.config/hass-nowplaying/
+cp /usr/share/doc/hass-nowplaying/appsettings.json ~/.config/hass-nowplaying/
+```
+
+## Via rpm file
+To install the application via rpm file, download the latest version from the releases section and install it with
+```bash
+rpm -ivh hass-nowplaying-<version>.rmp
 ```
 Copy the example configuration file to the user directory
 ```bash
