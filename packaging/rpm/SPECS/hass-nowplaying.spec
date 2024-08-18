@@ -23,6 +23,7 @@ rm -rf $RPM_BUILD_ROOT
 
 mkdir -p $RPM_BUILD_ROOT/%{_bindir}
 mkdir -p $RPM_BUILD_ROOT/%{_datadir}/doc/%{name}
+mkdir -p $RPM_BUILD_ROOT/%{_datadir}/%{name}
 
 install -m 755 %{_sourcedir}/%{name} $RPM_BUILD_ROOT/%{_bindir}
 install -m 644 %{_sourcedir}/%{name}.service $RPM_BUILD_ROOT/%{_datadir}/%{name}
