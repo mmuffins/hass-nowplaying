@@ -11,20 +11,28 @@ Controls Home Assistant media players.
 
 %prep
 %setup -q
+#echo "BUILDROOT = $RPM_BUILD_ROOT"
+#mkdir -p $RPM_BUILD_ROOT/usr/share/doc/%{name}
+
+#cp /home/mmuffins/source/%{name}/LICENSE $RPM_BUILD_ROOT/usr/share/doc/%{name}
+#cp /home/mmuffins/source/%{name}/README.md $RPM_BUILD_ROOT/usr/share/doc/%{name}
+#exit
 
 %build
+# update /usr/bin with % {_bindir}
 
 %install
-echo "update /usr/bin with % {_bindir}"
+echo "TOPDIR = ${_topdir}"
+echo "SOURCEDIR = %{_sourcedir}"
 rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT/usr/bin
+# mkdir -p $RPM_BUILD_ROOT/usr/bin
 mkdir -p $RPM_BUILD_ROOT/usr/share/doc/%{name}
-install -m 755 %{_sourcedir}/usr/bin/hass-nowplaying $RPM_BUILD_ROOT/usr/bin/
-install -m 644 %{_sourcedir}/usr/share/doc/%{name}/README.md $RPM_BUILD_ROOT/usr/share/doc/%{name}/
-install -m 644 %{_sourcedir}/usr/share/doc/%{name}/LICENSE $RPM_BUILD_ROOT/usr/share/doc/%{name}/
+# install -m 755 %{_sourcedir}/usr/bin/hass-nowplaying $RPM_BUILD_ROOT/usr/bin/
+install -m 644 %{_sourcedir}/README.md $RPM_BUILD_ROOT/usr/share/doc/%{name}/
+install -m 644 %{_sourcedir}/LICENSE $RPM_BUILD_ROOT/usr/share/doc/%{name}/
 
 %files
-%attr(0755, root, root) /usr/bin/hass-nowplaying
+# %attr(0755, root, root) /usr/bin/hass-nowplaying
 %attr(0644, root, root) /usr/share/doc/%{name}/README.md
 %attr(0644, root, root) /usr/share/doc/%{name}/LICENSE
 
