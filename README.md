@@ -85,3 +85,12 @@ systemctl --user disable hass-nowplaying.service
 rm ~/.config/systemd/user/hass-nowplaying.service
 systemctl --user daemon-reload
 ```
+
+# Upgrading
+## Via rpm file
+To upgrade the application via rpm file, download the latest version from the releases section and upgrade it using
+```bash
+systemctl --user stop hass-nowplaying.service
+rpm -Uvh hass-nowplaying-<version>.rmp
+systemctl --user start hass-nowplaying.service
+```
