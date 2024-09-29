@@ -90,8 +90,8 @@ jobs:
 
     - name: Install build packages
       run: |
-        apt update
-        apt install elfutils
+        sudo apt update
+        sudo apt install -y elfutils
 
     - name: Create folder structure
       run: |
