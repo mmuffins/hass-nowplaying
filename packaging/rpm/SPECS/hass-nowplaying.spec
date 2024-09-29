@@ -5,7 +5,7 @@ Summary: Controls Home Assistant media players.
 License: MIT
 BuildArch: %{buildarch}
 
-Requires: dotnet-runtime >= 8.0
+Requires: dotnet-runtime-8.0 >= 8.0.4
 
 %global __strip /bin/true
 
