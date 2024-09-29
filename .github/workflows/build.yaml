@@ -143,9 +143,9 @@ jobs:
       run: |
         cd "${{ github.workspace }}/publish"
         rpm -qip ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}.${{ env.rpm_arch }}.rpm
-
-        cd "${{ github.workspace }}/packaging/rpm/SOURCES"
-        eu-readelf -n hass-nowplaying 
+        rpm2cpio ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}.${{ env.rpm_arch }}.rpm  | cpio -idmv
+        ls -alR
+       
         
 
   deb:
