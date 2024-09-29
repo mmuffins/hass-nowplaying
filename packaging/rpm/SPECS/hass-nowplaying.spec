@@ -7,7 +7,7 @@ BuildArch: %{buildarch}
 
 Requires: dotnet-runtime-8.0 >= 8.0.4
 
-%global debug_package %{nil}
+%define _build_id_links none
 %global __strip /bin/true
 
 %description
