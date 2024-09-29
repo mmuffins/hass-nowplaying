@@ -88,6 +88,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Install build packages
+      run: |
+        apt update
+        apt install elfutils
+
     - name: Create folder structure
       run: |
         cd "${{ github.workspace }}/packaging/rpm"
