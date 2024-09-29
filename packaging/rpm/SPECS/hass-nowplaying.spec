@@ -8,7 +8,7 @@ BuildArch: %{buildarch}
 Requires: dotnet-runtime-8.0 >= 8.0.4
 
 %global debug_package %{nil}
-# %global __strip /bin/true
+%global __strip /bin/true
 
 %description
 Controls Home Assistant media players.
