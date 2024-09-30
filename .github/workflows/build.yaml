@@ -40,7 +40,7 @@ jobs:
       run: dotnet build
       
     - name: dotnet publish
-      run: dotnet publish --configuration ${{ env.build_configuration }} --runtime ${{ env.build_runtime }} --framework ${{ env.build_framework }} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -p:PublishReadyToRun=false -p:Version=${{ env.version }} -p:PackageVersion=${{ env.version }} --output publish
+      run: dotnet publish --configuration ${{ env.build_configuration }} --runtime ${{ env.build_runtime }} --framework ${{ env.build_framework }} --self-contained false -p:PublishSingleFile=true -p:PublishTrimmed=false -p:PublishReadyToRun=false -p:Version=${{ env.version }} -p:PackageVersion=${{ env.version }} --output publish
 
     - name: Set execute permissoins
       run: |
