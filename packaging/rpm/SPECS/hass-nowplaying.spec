@@ -29,7 +29,7 @@ install -m 644 %{_sourcedir}/LICENSE $RPM_BUILD_ROOT/%{_datadir}/doc/%{name}
 %files
 %attr(0755, root, root) %{_bindir}/%{name}
 %attr(0644, root, root) %{_datadir}/%{name}/%{name}.service
-%attr(0644, root, root) %{_datadir}/doc/%{name}/appsettings.json
+%config(noreplace) %{_datadir}/doc/%{name}/appsettings.json
 %attr(0644, root, root) %{_datadir}/doc/%{name}/README.md
 %attr(0644, root, root) %{_datadir}/doc/%{name}/LICENSE
 %dir %{_datadir}/%{name}
