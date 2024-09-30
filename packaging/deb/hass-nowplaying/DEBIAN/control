@@ -4,3 +4,4 @@ Maintainer: mmuffins
 Architecture: amd64
 Priority: optional
 Description: Controls Home Assistant media players.
+Depends: dotnet-runtime-8.0 (>= 8.0.4)

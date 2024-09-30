@@ -40,7 +40,7 @@ jobs:
       run: dotnet build
       
     - name: dotnet publish
-      run: dotnet publish --configuration ${{ env.build_configuration }} --runtime ${{ env.build_runtime }} --framework ${{ env.build_framework }} --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -p:PublishReadyToRun=false -p:Version=${{ env.version }} -p:PackageVersion=${{ env.version }} --output publish
+      run: dotnet publish --configuration ${{ env.build_configuration }} --runtime ${{ env.build_runtime }} --framework ${{ env.build_framework }} --self-contained false -p:PublishSingleFile=true -p:PublishTrimmed=false -p:PublishReadyToRun=false -p:Version=${{ env.version }} -p:PackageVersion=${{ env.version }} --output publish
 
     - name: Set execute permissoins
       run: |
@@ -114,11 +114,6 @@ jobs:
 
     - name: Build rpm file
       run: |
-        cd "${{ github.workspace }}/packaging/rpm"
-        ls -alR
-
-    - name: Build rpm file
-      run: |
         mkdir -p "${{ github.workspace }}/publish"
         cd "${{ github.workspace }}/packaging/rpm"
 
@@ -132,10 +127,6 @@ jobs:
 
         mv ./RPMS/${{ env.rpm_arch }}/${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}.${{ env.rpm_arch }}.rpm "${{ github.workspace }}/publish/"
 
-    - name: Build rpm file
-      run: |
-        cd "${{ github.workspace }}/packaging/rpm"
-        ls -alR
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -147,6 +138,10 @@ jobs:
       run: |
         cd "${{ github.workspace }}/publish"
         rpm -qip ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}.${{ env.rpm_arch }}.rpm
+        rpm2cpio ${{ env.package_name }}-${{ env.version }}-${{ env.rpm_release }}.${{ env.rpm_arch }}.rpm  | cpio -idmv
+        ls -alR
+       
+        
 
   deb:
     runs-on: ubuntu-latest
