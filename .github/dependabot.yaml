@@ -14,5 +14,6 @@ updates:
         patterns:
         - "Microsoft*"
         - "NetDaemon*"
+        - "csharpier"
         - "Tmds*"
         - "System*"
