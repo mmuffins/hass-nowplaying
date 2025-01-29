@@ -7,5 +7,6 @@
     "csharpier.enableDebugLogs": true,
     "[json]": {
         "editor.defaultFormatter": "vscode.json-language-features"
-    }
+    },
+    "nixEnvSelector.nixFile": "${workspaceFolder}/shell.nix"
 }
