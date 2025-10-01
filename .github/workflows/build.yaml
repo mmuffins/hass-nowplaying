@@ -13,6 +13,7 @@ env:
   rpm_arch: x86_64
   rpm_release: 1
   dotnet_version: 8
+  deb_dotnet_runtime: dotnet-runtime-8.0
 
 jobs:
   build:
@@ -151,10 +152,10 @@ jobs:
     steps:
     - uses: actions/checkout@v5
 
-    - name: Setup .NET Core
-      uses: actions/setup-dotnet@v5
-      with:
-        dotnet-version: ${{ env.dotnet_version }}
+    - name: Install .NET Runtime
+      run: |
+        sudo apt update
+        sudo apt install -y ${{ env.deb_dotnet_runtime }}
 
     - name: Create folder structure
       run: |
