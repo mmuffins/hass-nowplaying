@@ -12,6 +12,7 @@ env:
   package_name: hass-nowplaying
   rpm_arch: x86_64
   rpm_release: 1
+  dotnet_version: 8
 
 jobs:
   build:
@@ -31,7 +32,7 @@ jobs:
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: 8
+        dotnet-version: ${{ env.dotnet_version }}
       
     - name: dotnet restore
       run: dotnet restore
@@ -149,6 +150,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v5
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: ${{ env.dotnet_version }}
 
     - name: Create folder structure
       run: |
