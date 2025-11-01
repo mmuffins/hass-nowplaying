@@ -50,7 +50,7 @@ jobs:
         chmod +x hass-nowplaying
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: build
         path: ${{ github.workspace }}/publish
@@ -68,7 +68,7 @@ jobs:
         rm -r hass-nowplaying
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: tarball
         path: ${{ github.workspace }}/publish/tarball
@@ -131,7 +131,7 @@ jobs:
 
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: rpm
         path: ${{ github.workspace }}/publish
@@ -196,7 +196,7 @@ jobs:
         mv ${{ env.package_name }}.deb "${{ github.workspace }}/publish/${{ env.package_name }}_${{ env.version }}.deb"
     
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: deb
         path: ${{ github.workspace }}/publish
