@@ -28,7 +28,7 @@ jobs:
       build_framework: net8.0
     
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v5
@@ -88,7 +88,7 @@ jobs:
     needs: build
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Create folder structure
       run: |
@@ -150,7 +150,7 @@ jobs:
     needs: build
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install .NET Runtime
       run: |
@@ -215,7 +215,7 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Get tarball
       uses: actions/download-artifact@v6
