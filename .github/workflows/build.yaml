@@ -100,7 +100,7 @@ jobs:
         mkdir -p SRPMS
 
     - name: Get artifacts
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
       with:
         name: build
         path: ${{ github.workspace }}/packaging/rpm/SOURCES
@@ -165,7 +165,7 @@ jobs:
         mkdir -p usr/share/doc/${{ env.package_name }}
 
     - name: Get artifacts
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
       with:
         name: build
         path: ${{ github.workspace }}/packaging/deb/${{ env.package_name }}/usr/bin
@@ -218,19 +218,19 @@ jobs:
     - uses: actions/checkout@v6
 
     - name: Get tarball
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
       with:
         name: tarball
         path: ${{ github.workspace }}/publish
 
     - name: Get deb
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
       with:
         name: deb
         path: ${{ github.workspace }}/publish
 
     - name: Get rpm
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
       with:
         name: rpm
         path: ${{ github.workspace }}/publish
