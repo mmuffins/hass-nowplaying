@@ -3,14 +3,14 @@
   "isRoot": true,
   "tools": {
     "netdaemon.hassmodel.codegen": {
-      "version": "25.46.0",
+      "version": "25.48.0",
       "commands": [
         "nd-codegen"
       ],
       "rollForward": false
     },
     "csharpier": {
-      "version": "1.2.1",
+      "version": "1.2.5",
       "commands": [
         "dotnet-csharpier"
       ],
