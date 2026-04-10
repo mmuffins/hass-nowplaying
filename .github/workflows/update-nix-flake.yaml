@@ -58,6 +58,25 @@ jobs:
     - name: dotnet restore
       run: dotnet restore --runtime ${{ matrix.build_runtime }} --packages nuget-restore ./hass_mpris.sln
 
+    - name: remove duplicate dependencies
+      run: | 
+        # workaround to fix `ln: failed to create symbolic link '/build/nuget.vuabJV/fallback/microsoft.netcore.app.runtime.linux-x64/10.0.5': File exists`
+        # when building the project in nixos
+
+        DIRS=(
+            "nuget-restore/microsoft.aspnetcore.app.runtime.linux-x64"
+            "nuget-restore/microsoft.netcore.app.runtime.linux-x64"
+        )
+
+        for dir in "${DIRS[@]}"; do
+            if [ -d "$dir" ]; then
+                echo "Removing $dir..."
+                rm -rf "$dir"
+            else
+                echo "$dir does not exist, skipping..."
+            fi
+        done
+
     - name: update flake app version
       run: |
         latest_tag=$(git tag | sort --version-sort | tail -n1)
