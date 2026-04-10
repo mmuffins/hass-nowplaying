@@ -7,7 +7,7 @@ on:
     types: [completed]
     branches: [main]
 
-  # don't use on release, it only works for manually crated releases
+  # don't use on release, it only works for manually created releases
   # release:
   #   types:
   #     - published
