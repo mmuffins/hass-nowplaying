@@ -37,7 +37,10 @@
             "NowPlayingDaemon/NowPlayingDaemon.csproj"
           ];
 
-          # deps.json is checked in to the source repository and consumed directly
+          # to manually update dependencies:
+          # dotnet restore --use-current-runtime --packages nuget-restore ./ProcessTracker.sln
+          # nuget-to-json nuget-restore > deps.json
+          # rm -r nuget-restore
           nugetDeps = "${src}/deps.json";
           executables = [ "hass-nowplaying" ];
         };

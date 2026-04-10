@@ -11,3 +11,4 @@ NetDaemonCodegen/
 # nixos folders
 out
 result
+nuget-restore
