@@ -9,80 +9,49 @@
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
+      lib = pkgs.lib;
       appVersion = "1.0.1301";
       dotnetVersion = "10_0";
+
+      filteredSrc = lib.cleanSourceWith {
+        src = self;
+        filter = path: type:
+          let
+            rel = lib.removePrefix (toString self + "/") (toString path);
+          in
+            ! lib.hasPrefix ".config/" rel
+            && rel != ".config";
+      };
     in
     {
-      inherit system;
-
-      packages."${system}" = {
+      packages.${system} = {
         hass-nowplaying = pkgs.buildDotnetModule rec {
           pname = "hass-nowplaying";
           version = appVersion;
 
+          src = filteredSrc;
 
-          meta = with pkgs.lib; {
-            description = "Home Assistant Now Playing Daemon";
-            license = licenses.mit;
-            platforms = [ system ];
-            mainProgram = "hass-nowplaying";
-          };
-
-          dotnet-sdk = pkgs.dotnetCorePackages."sdk_${dotnetVersion}";
-          dotnet-runtime = pkgs.dotnetCorePackages."runtime_${dotnetVersion}";
-
-          src = self;
-
-          projectFile = [
-            "NowPlayingDaemon/NowPlayingDaemon.csproj"
-          ];
+          projectFile = [ "NowPlayingDaemon/NowPlayingDaemon.csproj" ];
 
           # to manually update dependencies:
           # dotnet restore --use-current-runtime --packages nuget-restore ./hass_mpris.sln
           # nuget-to-json nuget-restore > deps.json
           # rm -r nuget-restore
-          nugetDeps = "${src}/deps.json";
+          nugetDeps = ./deps.json;
           executables = [ "hass-nowplaying" ];
+
+          dotnet-sdk = pkgs.dotnetCorePackages."sdk_${dotnetVersion}";
+          dotnet-runtime = pkgs.dotnetCorePackages."runtime_${dotnetVersion}";
+
+          meta = with lib; {
+            description = "Home Assistant Now Playing Daemon";
+            license = licenses.mit;
+            platforms = [ system ];
+            mainProgram = "hass-nowplaying";
+          };
         };
+
+        default = self.packages.${system}.hass-nowplaying;
       };
-
-      defaultPackage."${system}" = self.packages."${system}".hass-nowplaying;
-
-      nixosModules.hass-nowplaying =
-        { config, lib, ... }:
-        let
-          cfg = config.services.hass-nowplaying;
-        in
-        {
-          options.services.hass-nowplaying = {
-            enable = lib.mkEnableOption "Enable the hass-nowplaying user service";
-
-            package = lib.mkOption {
-              type = lib.types.package;
-              default = self.packages.${system}.hass-nowplaying;
-              description = "Home Assistant Now Playing Daemon";
-            };
-          };
-
-          config = lib.mkIf cfg.enable {
-            home.packages = [ cfg.package ];
-
-            systemd.user.services.hass-nowplaying = {
-              Unit = {
-                Description = "Home Assistant Now Playing Daemon";
-                Wants = [ "network-online.target" ];
-                After = [ "dbus.service network-online.target" ];
-                Requires = [ "dbus.service" ];
-              };
-
-              Service = {
-                ExecStart = "${lib.getExe' cfg.package "hass-nowplaying"}";
-                Restart = "on-failure";
-              };
-
-              Install.WantedBy = [ "default.target" ];
-            };
-          };
-        };
     };
 }
