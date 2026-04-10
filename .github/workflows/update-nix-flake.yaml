@@ -56,7 +56,7 @@ jobs:
         dotnet-version: ${{ env.dotnet_major }}
       
     - name: dotnet restore
-      run: dotnet restore --runtime ${{ matrix.build_runtime }} --packages nuget-restore ./ProcessTracker.sln
+      run: dotnet restore --runtime ${{ matrix.build_runtime }} --packages nuget-restore ./hass_mpris.sln
 
     - name: update flake app version
       run: |
