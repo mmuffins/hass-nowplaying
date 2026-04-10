@@ -28,6 +28,6 @@
       <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="10.0.5" />
       <PackageReference Include="NetDaemon.Runtime" Version="24.43.0" />
       <PackageReference Include="Tmds.DBus" Version="0.92.0" />
-      <PackageReference Include="Tmds.DBus.Protocol" Version="0.91.1" />
+      <PackageReference Include="Tmds.DBus.Protocol" Version="0.92.0" />
     </ItemGroup>
 </Project>
