@@ -17,8 +17,8 @@ env:
   package_name: hass-nowplaying
   rpm_arch: x86_64
   rpm_release: 1
-  dotnet_version: 8
-  deb_dotnet_runtime: dotnet-runtime-8.0
+  dotnet_version: 10
+  deb_dotnet_runtime: dotnet-runtime-10.0
 
 jobs:
   build:
@@ -30,7 +30,7 @@ jobs:
     env:
       build_configuration: Release
       build_runtime: linux-x64
-      build_framework: net8.0
+      build_framework: net10.0
     
     steps:
     - uses: actions/checkout@v6

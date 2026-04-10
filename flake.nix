@@ -10,7 +10,7 @@
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
       appVersion = "1.0.1301";
-      dotnetVersion = "8_0";
+      dotnetVersion = "10_0";
     in
     {
       inherit system;
@@ -38,7 +38,7 @@
           ];
 
           # to manually update dependencies:
-          # dotnet restore --use-current-runtime --packages nuget-restore ./ProcessTracker.sln
+          # dotnet restore --use-current-runtime --packages nuget-restore ./hass_mpris.sln
           # nuget-to-json nuget-restore > deps.json
           # rm -r nuget-restore
           nugetDeps = "${src}/deps.json";
