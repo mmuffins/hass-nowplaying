@@ -1,0 +1,97 @@
+name: update-nix-flake
+
+on:
+  workflow_dispatch:      
+  workflow_run:
+    workflows: ["build"]
+    types: [completed]
+    branches: [main]
+
+  # don't use on release, it only works for manually crated releases
+  # release:
+  #   types:
+  #     - published
+
+env:
+  dotnet_major: 10
+  build_framework: net10.0
+  build_configuration: Release
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        build_runtime: 
+          - linux-x64
+    
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+
+    - name: configure git
+      run: |
+        git config user.email 'github-actions[bot]@users.noreply.github.com'
+        git config user.name 'github-actions[bot]'
+
+    - name: create branch
+      run: git checkout -b "flake-update-${{ github.run_number }}-${{ github.run_attempt }}"
+
+    - name: check git status
+      run: git status
+
+    - uses: cachix/install-nix-action@v31
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: ${{ env.dotnet_major }}
+      
+    - name: dotnet restore
+      run: dotnet restore --runtime ${{ matrix.build_runtime }} --packages nuget-restore ./ProcessTracker.sln
+
+    - name: update flake app version
+      run: |
+        latest_tag=$(git tag | sort --version-sort | tail -n1)
+        echo "Setting tag to: $latest_tag"
+        sed -i "s|appVersion = \"[^\"]*\"|appVersion = \"$latest_tag\"|" flake.nix
+        grep "appVersion =" flake.nix
+
+    - name: update nix flake
+      run: |
+        nix flake update
+
+    - name: create dependency file
+      run: |
+        nix shell nixpkgs#nuget-to-json nixpkgs#dotnetCorePackages.sdk_10_0 --command sh -c "nuget-to-json nuget-restore/ > deps.json"
+        rm -r nuget-restore
+        cat deps.json
+
+    - name: stage changes
+      run: |
+        git add deps.json
+        git add flake.nix
+        git add flake.lock
+        git status
+
+    - name: commit changes
+      run: git commit -m "Update nix flake"
+        
+    - name: build project
+      run: nix build
+
+    - name: push branch
+      run: git push --set-upstream origin flake-update-${{ github.run_number }}-${{ github.run_attempt }}
+
+    - name: create pull request
+      run: gh pr create -B main -H "flake-update-${{ github.run_number }}-${{ github.run_attempt }}" --title 'Update nix flake' --body 'Updated nix flake'
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -7,3 +7,8 @@ appsettings.Development.json
 #HomeAssistantGenerated.cs
 publish/
 NetDaemonCodegen/
+
+# nixos folders
+out
+result
+nuget-restore
