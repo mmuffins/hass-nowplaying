@@ -472,7 +472,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             return;
         }
 
-        haPlayer.CallService("media_seek", offset);
+        haPlayer.CallService("media_seek", new { seek_position = offset });
     }
 
     public void PlayMedia(
@@ -520,7 +520,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             return;
         }
 
-        haPlayer.CallService("shuffle_set", enabled);
+        haPlayer.CallService("shuffle_set", new { shuffle = enabled });
     }
 
     public void LoopStatus(LoopStatus loopStatus)
@@ -544,7 +544,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             return;
         }
 
-        haPlayer.CallService("repeat_set", repeatState.ToString());
+        haPlayer.CallService("repeat_set", new { repeat = repeatState.ToString()});
     }
 
     public void Volume(double volume)
