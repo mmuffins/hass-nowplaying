@@ -7,7 +7,17 @@ await Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration(
         (hostingContext, config) =>
         {
-            config.AddJsonFile(configFilePath, optional: false, reloadOnChange: true);
+            // config.AddJsonFile(configFilePath, optional: false, reloadOnChange: true);
+            config.Sources.Clear();
+            var configFilePath = GetConfigFilePath();
+            var configDir = Path.GetDirectoryName(configFilePath)!;
+            var secretFilePath = GetSecretConfigFilePath(configFilePath);
+            
+            config
+                .AddJsonFile(configFilePath, optional: false, reloadOnChange: true)
+                .AddJsonFile(secretFilePath, optional: true, reloadOnChange: true)
+                .AddEnvironmentVariables()
+                .AddCommandLine(args);
         }
     )
     .ConfigureLogging(logging =>
@@ -77,4 +87,16 @@ string GetConfigFilePath()
     var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
     var userConfigPath = Path.Combine(homeDir, ".config", "hass-nowplaying", "appsettings.json");
     return userConfigPath;
+}
+
+string GetSecretConfigFilePath(string mainConfigFilePath)
+{
+    var secretPathEnv = Environment.GetEnvironmentVariable("HASSNOWPLAYING_SECRET_APPSETTINGS_PATH");
+    if (!string.IsNullOrEmpty(secretPathEnv) && File.Exists(secretPathEnv))
+    {
+        return secretPathEnv;
+    }
+
+    var configDir = Path.GetDirectoryName(mainConfigFilePath)!;
+    return Path.Combine(configDir, "appsettings.secrets.json");
 }

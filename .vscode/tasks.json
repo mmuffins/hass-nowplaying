@@ -10,10 +10,6 @@
                 "${workspaceFolder}/hass_mpris.sln",
                 "--configuration", "Debug",
                 "--framework", "net10.0",
-                "--self-contained", "false",
-                "-p:PublishSingleFile=true",
-                "-p:PublishTrimmed=false",
-                "-p:PublishReadyToRun=false",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
