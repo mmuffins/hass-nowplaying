@@ -94,3 +94,10 @@ systemctl --user stop hass-nowplaying.service
 rpm -Uvh hass-nowplaying-<version>.rmp
 systemctl --user start hass-nowplaying.service
 ```
+
+# Build
+## Updating Home Assistant entities
+```
+dotnet tool restore
+dotnet tool run nd-codegen -host homeassistant.default -port 8123 -ssl false -ns hass_mpris.HassClasses -o ./NowPlayingDaemon/Classes/MassEntity.cs -token "TOKEN"
+```
