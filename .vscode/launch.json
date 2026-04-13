@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug Apps",
+            "name": "Debug",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
@@ -12,7 +12,8 @@
             "env": {
                 "DOTNET_ENVIRONMENT": "Development",
                 "ASPNETCORE_ENVIRONMENT": "Development",
-                "HASSNOWPLAYING_APPSETTINGS_PATH": "${workspaceFolder}/appsettings.Development.json"
+                "HASSNOWPLAYING_APPSETTINGS_PATH": "${workspaceFolder}/appsettings.Development.json",
+                "HASSNOWPLAYING_SECRET_APPSETTINGS_PATH": "${workspaceFolder}/appsettings.secret.Development.json"
             },
             "stopAtEntry": false,
             "logging": {

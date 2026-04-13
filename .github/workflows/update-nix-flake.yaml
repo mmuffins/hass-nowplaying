@@ -104,7 +104,10 @@ jobs:
     - name: commit changes
       run: git commit -m "Update nix flake"
         
-    - name: build project
+    - name: show flake
+      run: nix flake show
+
+    - name: build flake
       run: nix build
 
     - name: push branch

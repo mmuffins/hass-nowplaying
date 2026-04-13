@@ -4,6 +4,7 @@ using hass_mpris.HassClasses;
 using NetDaemon.AppModel;
 using NetDaemon.HassModel;
 using NetDaemon.HassModel.Entities;
+using NetDaemon.Runtime;
 
 namespace NowPlayingDaemon;
 
@@ -15,6 +16,8 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
     private readonly IMprisMediaPlayer _mprisPlayer;
     private readonly IHassContextProvider _hassContextProvider;
     private readonly UriBuilder hassUrl;
+    
+    private readonly INetDaemonRuntime _netDaemonRuntime;
 
     public string MediaPlayerEntityName { get; set; }
 
@@ -27,13 +30,15 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         IConfiguration config,
         IHassContextProvider hassContextProvider,
         DBusConnectionManager connectionManager,
-        IMprisMediaPlayer iMprisMediaPlayer
+        IMprisMediaPlayer iMprisMediaPlayer,
+        INetDaemonRuntime netDaemonRuntime
     )
     {
         _logger = logger;
         _hassContextProvider = hassContextProvider;
         _connectionManager = connectionManager;
         _mprisPlayer = iMprisMediaPlayer;
+        _netDaemonRuntime = netDaemonRuntime;
 
         int configMediaArtSize;
         if (
@@ -78,6 +83,8 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogDebug("Starting worker loop.");
+
+        await _netDaemonRuntime.WaitForInitializationAsync();
 
         var haContext = _hassContextProvider.GetContext();
         var haPlayer = GetMediaPlayerEntity(haContext, MediaPlayerEntityName);
@@ -226,7 +233,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         }
     }
 
-    public async Task UpdateMprisMetadata(MediaPlayerEntity haPlayer)
+    public async Task UpdateMprisMetadata(Entity<MediaPlayerAttributes> haPlayer)
     {
         _logger.LogDebug($"Updating mpris player metadata.");
 
@@ -255,7 +262,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         await _mprisPlayer.UpdateMetadata(metadata);
     }
 
-    private string GetMediaArtUrl(MediaPlayerEntity haPlayer, int imageSize)
+    private string GetMediaArtUrl(Entity<MediaPlayerAttributes> haPlayer, int imageSize)
     {
         // how the image uri is provided can very greatly between players
         // so we need to check each possible values
@@ -320,32 +327,38 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         return builder.Uri;
     }
 
-    private MediaPlayerEntity? GetMediaPlayerEntity(IHaContext haContext, string name)
+    private Entity<MediaPlayerAttributes>? GetMediaPlayerEntity(IHaContext haContext, string name)
     {
-        _logger.LogDebug($"Getting media player {name}.");
-        // var haPlayerX = new Entity<MediaPlayerAttributes>(haContext, MediaPlayerEntityName);
-
-        IEnumerable<MediaPlayerEntity> foundEntities = haContext
-            .GetAllEntities()
-            .Where(e => e.EntityId == name)
-            .Select(e => new MediaPlayerEntity(e));
-
-        if (foundEntities.Count() == 0)
+        if (string.IsNullOrWhiteSpace(name))
         {
-            _logger.LogError($"Could not find entity with name '{name}'.");
+            _logger.LogError("No media player entity ID was provided.");
             return null;
         }
 
-        if (foundEntities.Count() > 1)
+        name = name.Trim();
+
+        _logger.LogDebug("Getting media player {EntityId}.", name);
+
+        if (!name.StartsWith("media_player.", StringComparison.OrdinalIgnoreCase))
         {
-            string allNames = string.Join(", ", foundEntities.Select(p => p.EntityId));
             _logger.LogError(
-                $"Found multiple entities matching provided name '{name}': {allNames}"
+                "Configured entity ID '{EntityId}' is invalid. Expected an entity in the media_player domain.",
+                name
             );
             return null;
         }
 
-        return foundEntities.First();
+        var exists = haContext.GetAllEntities().Any(e => e.EntityId == name);
+        if (!exists)
+        {
+            _logger.LogError(
+                "Configured media player entity '{EntityId}' was not found in the current Home Assistant state cache.",
+                name
+            );
+            return null;
+        }
+
+        return new Entity<MediaPlayerAttributes>(haContext, name);
     }
 
     public void PlayPause()
@@ -359,7 +372,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             return;
         }
 
-        haPlayer.MediaPlayPause();
+        haPlayer.CallService("media_play_pause");
     }
 
     public void Play()
@@ -378,7 +391,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             return;
         }
 
-        haPlayer.MediaPlay();
+        haPlayer.CallService("media_play");
     }
 
     public void Pause()
@@ -396,7 +409,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         {
             return;
         }
-        haPlayer.MediaPause();
+        haPlayer.CallService("media_pause");
     }
 
     public void Stop()
@@ -414,7 +427,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         {
             return;
         }
-        haPlayer.MediaStop();
+        haPlayer.CallService("media_stop");
     }
 
     public void NextTrack()
@@ -431,7 +444,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         // According to https://specifications.freedesktop.org/mpris-spec/latest/Player_Interface.html
         // the next and previous actions should fire even if it's not know if they will be successful
         // so we don't really need to check for anything
-        haPlayer.MediaNextTrack();
+        haPlayer.CallService("media_next_track");
     }
 
     public void PreviousTrack()
@@ -445,7 +458,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             return;
         }
 
-        haPlayer.MediaPreviousTrack();
+        haPlayer.CallService("media_previous_track");
     }
 
     public void Seek(long offset)
@@ -459,14 +472,14 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             return;
         }
 
-        haPlayer.MediaSeek(offset);
+        haPlayer.CallService("media_seek", new { seek_position = offset });
     }
 
     public void PlayMedia(
         string mediaContentId,
         string mediaContentType,
-        object enqueue,
-        bool announce
+        string enqueue,
+        string announce
     )
     {
         _logger.LogDebug($"Sending play media signal for id {mediaContentId} media player.");
@@ -478,8 +491,18 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             return;
         }
 
-        haPlayer.PlayMedia(mediaContentId, mediaContentType, enqueue, announce);
+        haPlayer.CallService(
+            "play_media",
+            new
+            {
+                media_content_id = mediaContentId,
+                media_content_type = mediaContentType,
+                enqueue = enqueue,
+                announce = announce
+            }
+        );
     }
+
 
     public void Shuffle(bool enabled)
     {
@@ -497,7 +520,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             return;
         }
 
-        haPlayer.ShuffleSet(enabled);
+        haPlayer.CallService("shuffle_set", new { shuffle = enabled });
     }
 
     public void LoopStatus(LoopStatus loopStatus)
@@ -521,7 +544,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             return;
         }
 
-        haPlayer.RepeatSet(repeatState.ToString());
+        haPlayer.CallService("repeat_set", new { repeat = repeatState.ToString()});
     }
 
     public void Volume(double volume)
@@ -542,7 +565,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             return;
         }
 
-        haPlayer.VolumeSet(volume);
+        haPlayer.CallService("volume_set", new { volume_level = volume});
     }
 
     public void TurnOn()
@@ -561,7 +584,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             return;
         }
 
-        haPlayer.TurnOn();
+        haPlayer.CallService("turn_on");
     }
 
     public void TurnOff()
@@ -580,7 +603,7 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
             return;
         }
 
-        haPlayer.TurnOff();
+        haPlayer.CallService("turn_off");
     }
 
     private static RepeatState StringtoRepeat(string? state)

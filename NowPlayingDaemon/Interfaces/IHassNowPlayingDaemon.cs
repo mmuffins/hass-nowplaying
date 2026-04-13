@@ -22,11 +22,11 @@ public interface IHassNowPlayingDaemon
     void Repeat(RepeatState repeatState);
     void Volume(double volume);
     void Seek(long offset);
-    void PlayMedia(string mediaContentId, string mediaContentType, object enqueue, bool announce);
+    void PlayMedia(string mediaContentId, string mediaContentType, string enqueue, string announce);
 
     void TurnOn();
     void TurnOff();
 
-    public Task UpdateMprisMetadata(MediaPlayerEntity haPlayer);
+    public Task UpdateMprisMetadata(Entity<MediaPlayerAttributes> haPlayer);
     public Task UpdatePlayerState(EntityState<MediaPlayerAttributes>? state);
 }

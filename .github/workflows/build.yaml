@@ -13,10 +13,10 @@ on:
   pull_request:  
 
 env:
-  version: "1.0.${{ github.run_number }}${{ github.run_attempt }}"
+  version: "2.0.${{ github.run_number }}${{ github.run_attempt }}"
   package_name: hass-nowplaying
   rpm_arch: x86_64
-  rpm_release: 1
+  rpm_release: 2
   dotnet_version: 10
   deb_dotnet_runtime: dotnet-runtime-10.0
 

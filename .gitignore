@@ -1,9 +1,12 @@
 obj
 bin
-appsettings.Development.json
 .vs
 *.gen
 .idea
+
+appsettings.Development.json
+appsettings.secret.Development.json
+
 #HomeAssistantGenerated.cs
 publish/
 NetDaemonCodegen/

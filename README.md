@@ -1,84 +1,151 @@
-# Home Assistant Now Playing Daemon 
-hass-nowplaying connects to a local to home assistant instance and exposes its media players to the linux D-Bbus. This lets the local desktop display information about the currently playing media to be displayed on the and allows for remote control of the media player.
+# Home Assistant Now Playing Daemon
+
+`hass-nowplaying` connects a local Linux desktop to a Home Assistant instance and exposes a media player over D-Bus / MPRIS. This lets the local desktop display information about the currently playing media to be displayed on the and allows for remote control of the media player.
 
 # Setup
 ## Manual installation
-To manually install the application download the latest tarball from the releases section and extract it with
+Download the latest tarball from the releases section and extract it:
+
 ```bash
 tar -xzvf hass-nowplaying.tar.gz
 ```
-Copy the extracted file to the `/usr/bin` directory
+Copy the binary to `/usr/bin`:
+
 ```bash
 cp hass-nowplaying/hass-nowplaying /usr/bin
 ```
-Copy appsettings json to a valid config file location and configure all required settings. See the configuration section for more information.
+
+Create the config directory and copy the example config:
+
 ```bash
-mkdir ~/.config/hass-nowplaying
-cp hass-nowplaying/appsettings.json ~/.config/hass-nowplaying
+mkdir -p ~/.config/hass-nowplaying
+cp hass-nowplaying/appsettings.json ~/.config/hass-nowplaying/
 ```
 
-## Via deb file
-To install the application via deb file, download the latest version from the releases section and install it with
+Optionally create a separate secrets file for the Home Assistant token:
+
+```bash
+cp hass-nowplaying/appsettings.secrets.json ~/.config/hass-nowplaying/
+```
+
+## Via DEB package
+
+Install:
+
 ```bash
 dpkg -i hass-nowplaying.deb
 ```
-Copy the example configuration file to the user directory
+
+Copy the example config:
+
 ```bash
-mkdir ~/.config/hass-nowplaying/
+mkdir -p ~/.config/hass-nowplaying/
 cp /usr/share/doc/hass-nowplaying/appsettings.json ~/.config/hass-nowplaying/
 ```
 
-## Via rpm file
-To install the application via rpm file, download the latest version from the releases section and install it with
+## Via RPM package
+
+Install:
+
 ```bash
-rpm -ivh hass-nowplaying-<version>.rmp
+rpm -ivh hass-nowplaying-<version>.rpm
 ```
-Copy the example configuration file to the user directory
+
+Copy the example config:
+
 ```bash
-mkdir ~/.config/hass-nowplaying/
+mkdir -p ~/.config/hass-nowplaying/
 cp /usr/share/doc/hass-nowplaying/appsettings.json ~/.config/hass-nowplaying/
 ```
+
+---
 
 # Configuration
-## Config file
-The application is configured in the appsettings.json which it tries to find in different locations, in the following order:
-- The path configured in the `HASSNOWPLAYING_CONFIG_PATH` environment variable
-- `$XDG_CONFIG_HOME/hass-nowplaying/appsettings.json` if the XDG_CONFIG_HOME environment variable is set
-- `~/.config/hass-nowplaying/appsettings.json` if no other option applies
 
-### Supported properties
-The following options are supported in the configuration file:
-- `Logging` - Optional. Supports standard .net core logging settings, see https://learn.microsoft.com/en-us/aspnet/core/fundamentals/logging
-- `HomeAssistant`
-  - `Host` - The hostname or IP address of the Home Assistant instance to connect to.
-  - `Port` - The port number on which Home Assistant is running.
-  - `Ssl` - Boolean value indicating whether to use SSL/TLS to connect to Home Assistant.
-  - `Token` - Long-lived access to authenticate with Home Assistant.
-- `MediaplayerEntity` - The entity ID of the media player in Home Assistant to connect to.
-- `MediaArtSize` - Size of the media cover art in pixels. If not set, it defaults to using the original artwork size. Set to 0 if you explicitly want to always use the full artwork size.
+The application uses standard .NET configuration and supports layered configuration.
+
+## Configuration file lookup order
+
+### Main config file
+
+The main `appsettings.json` is loaded in this order:
+
+1. `HASSNOWPLAYING_APPSETTINGS_PATH`
+2. `$XDG_CONFIG_HOME/hass-nowplaying/appsettings.json`
+3. `/etc/hass-nowplaying/appsettings.json` (when running as root)
+4. `~/.config/hass-nowplaying/appsettings.json`
+
+### Secret config file
+
+An optional secret override file is loaded in this order:
+
+1. `HASSNOWPLAYING_SECRET_APPSETTINGS_PATH`
+2. `appsettings.secrets.json` in the same directory as the main config file
+
+See `appsettings.json` and `appsettings.secrets.json` in the root of this repository for examples on how to structure the settings file.
+
+## Supported settings
+
+### Logging
+
+Standard .NET logging configuration is supported.
+
+See Microsoft documentation for details.
+
+### HomeAssistant
+
+- `Host`: hostname or IP address of the Home Assistant instance
+- `Port`: Home Assistant port
+- `Ssl`: whether HTTPS should be used
+- `Token`: long-lived access token (recommended to place in secrets file)
+
+### Other settings
+
+- `MediaplayerEntity`: Home Assistant media player entity ID to expose over MPRIS
+- `MediaArtSize`: cover art size in pixels. Set to 0 to always use the original artwork size.
+
+---
 
 # Running the application
-## Interactively
-Once it has been installed and configured the application can now be started interactively by running `hass-nowplaying`. There are no parameters or switches, all configuration is done with the configuration file. Once started, the application will create an mpris media player service that automatically integrates itself with all distributions that support it to display the currently playing track and enable media key controls.
 
-## As service
-**Note that the application needs to access the user D-Bus session, so it's not possible to run it as regular root service!**
-The hass-nowplaying supports being run as service. To do so, copy the service file to the systemd user directory and reload the daemon.
+## Interactive mode
+
+Once installed and configured, start it manually:
+
+```bash
+hass-nowplaying
+```
+
+The application will create an MPRIS media player service and integrate automatically with supported desktop environments.
+
+## systemd user service
+
+> This application requires access to the user D-Bus session and must run as a user service, not as a system service.
+
+Install the service file:
+
 ```bash
 cp /usr/share/hass-nowplaying/hass-nowplaying.service ~/.config/systemd/user/
 systemctl --user daemon-reload
 ```
-The application can now be started as service.
+
+Start it:
+
 ```bash
 systemctl --user start hass-nowplaying.service
 ```
-To enable it to run on startup, configure it with
+
+Enable on login:
+
 ```bash
 systemctl --user enable hass-nowplaying.service
 ```
+
 When running the application as daemon it is recommended to change the log level in appsettings.json to `Warning` to prevent spamming the system log with unneeded information.
 
-To uninstall the service, disable it and delete the service file:
+
+## Uninstalling the service
+
 ```bash
 systemctl --user stop hass-nowplaying.service
 systemctl --user disable hass-nowplaying.service
@@ -86,11 +153,74 @@ rm ~/.config/systemd/user/hass-nowplaying.service
 systemctl --user daemon-reload
 ```
 
+---
+
+# Nix / Home Manager
+
+The application is available as nix flake for home manager. The flake installs the package, supports automatic creation of the settings file, and registers a systemd user service.
+
+
+Example:
+
+```nix
+{
+  imports = [
+    inputs.hass-nowplaying.homeManagerModules.hass-nowplaying
+  ];
+
+  services.hass-nowplaying = {
+    enable = true;
+
+    homeAssistant.host = "homeassistant.default";
+    homeAssistant.port = 8123;
+    homeAssistant.ssl = false;
+
+    mediaPlayerEntity = "media_player.sonos_arc";
+    mediaArtSize = 0;
+
+    secretSettingsFile = config.sops.secrets.hass-nowplaying-token.path;
+  };
+}
+```
+
+---
+
 # Upgrading
-## Via rpm file
-To upgrade the application via rpm file, download the latest version from the releases section and upgrade it using
+
+## RPM upgrade
+
 ```bash
 systemctl --user stop hass-nowplaying.service
-rpm -Uvh hass-nowplaying-<version>.rmp
+rpm -Uvh hass-nowplaying-<version>.rpm
 systemctl --user start hass-nowplaying.service
 ```
+
+---
+
+# Development
+
+## Updating Home Assistant entities
+
+```bash
+dotnet tool restore
+dotnet tool run nd-codegen \
+  -host homeassistant.default \
+  -port 8123 \
+  -ssl false \
+  -ns hass_mpris.HassClasses \
+  -o ./NowPlayingDaemon/Classes/MassEntity.cs \
+  -token "TOKEN"
+```
+Note that after generating the home assistant entities only the relevant media player definitions were kept to keep the class structure lean.
+
+## Local debugging
+
+For local development, you can use:
+
+* `appsettings.Development.json`
+* `appsettings.secret.Development.json`
+
+And point the application to them using:
+
+* `HASSNOWPLAYING_APPSETTINGS_PATH`
+* `HASSNOWPLAYING_SECRET_APPSETTINGS_PATH`
