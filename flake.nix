@@ -55,6 +55,30 @@
       homeManagerModules.hass-nowplaying = { config, lib, pkgs, ... }:
         let
           cfg = config.services.hass-nowplaying;
+
+          generatedSettingsFile = pkgs.writeText "hass-nowplaying-appsettings.json" (
+            builtins.toJSON {
+              Logging = {
+                LogLevel = {
+                  Default = cfg.logLevel;
+                };
+              };
+
+              HomeAssistant = {
+                Host = cfg.homeAssistant.host;
+                Port = cfg.homeAssistant.port;
+                Ssl = cfg.homeAssistant.ssl;
+              };
+
+              MediaplayerEntity = cfg.mediaPlayerEntity;
+              MediaArtSize = cfg.mediaArtSize;
+            }
+          );
+
+          effectiveSettingsFile =
+            if cfg.settingsFile != null
+            then cfg.settingsFile
+            else generatedSettingsFile;
         in
         {
           options.services.hass-nowplaying = {
@@ -71,6 +95,64 @@
               default = true;
               description = "Enable notifications when the service fails.";
             };
+
+            settingsFile = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+              description = ''
+                Full path to the main appsettings JSON file.
+
+                If null, the module generates a non-secret appsettings.json automatically
+                from the other module options.
+              '';
+            };
+
+            secretSettingsFile = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+              description = ''
+                Full path to a JSON file containing secret overrides, such as
+                HomeAssistant.Token. This file must not live in the Nix store.
+              '';
+            };
+
+            logLevel = lib.mkOption {
+              type = lib.types.str;
+              default = "Warning";
+              description = "Default logging level written into the generated appsettings.json.";
+            };
+
+            homeAssistant = {
+              host = lib.mkOption {
+                type = lib.types.str;
+                example = "homeassistant.default";
+                description = "Home Assistant hostname.";
+              };
+
+              port = lib.mkOption {
+                type = lib.types.port;
+                default = 8123;
+                description = "Home Assistant port.";
+              };
+
+              ssl = lib.mkOption {
+                type = lib.types.bool;
+                default = false;
+                description = "Whether to use HTTPS for Home Assistant.";
+              };
+            };
+
+            mediaPlayerEntity = lib.mkOption {
+              type = lib.types.str;
+              example = "media_player.sonos_arc";
+              description = "The Home Assistant Media player entity ID to expose through MPRIS.";
+            };
+
+            mediaArtSize = lib.mkOption {
+              type = lib.types.int;
+              default = 0;
+              description = "Artwork size setting passed to the application. Set to 0 to always use the full artwork size.";
+            };
           };
 
           config = lib.mkIf cfg.enable {
@@ -80,15 +162,18 @@
               Unit = {
                 Description = "Home Assistant Now Playing Daemon";
                 Wants = [ "network-online.target" ];
-                After = [ "dbus.service network-online.target" ];
+                After = [ "dbus.service" "network-online.target" ];
                 Requires = [ "dbus.service" ];
-
                 OnFailure = lib.optional cfg.notifyOnFailure "hass-nowplaying-notify.service";
               };
 
               Service = {
                 ExecStart = lib.getExe cfg.package;
                 Restart = "on-failure";
+                Environment =
+                  [ "HASSNOWPLAYING_APPSETTINGS_PATH=${effectiveSettingsFile}" ]
+                  ++ lib.optional (cfg.secretSettingsFile != null)
+                    "HASSNOWPLAYING_SECRET_APPSETTINGS_PATH=${cfg.secretSettingsFile}";
               };
 
               Install = {
