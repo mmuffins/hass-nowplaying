@@ -14,8 +14,8 @@ await Host.CreateDefaultBuilder(args)
             var secretFilePath = GetSecretConfigFilePath(configFilePath);
             
             config
-                .AddJsonFile(configFilePath, optional: false, reloadOnChange: true)
-                .AddJsonFile(secretFilePath, optional: true, reloadOnChange: true)
+                .AddJsonFile(configFilePath, optional: false, reloadOnChange: false)
+                .AddJsonFile(secretFilePath, optional: true, reloadOnChange: false)
                 .AddEnvironmentVariables("HASSNOWPLAYING_")
                 .AddCommandLine(args);
         }
