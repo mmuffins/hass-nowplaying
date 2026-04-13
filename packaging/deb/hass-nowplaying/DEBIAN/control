@@ -1,5 +1,5 @@
 Package: hass-nowplaying
-Version: 0.1-1
+Version: 2.0-0
 Maintainer: mmuffins
 Architecture: amd64
 Priority: optional
