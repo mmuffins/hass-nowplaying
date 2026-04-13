@@ -8,7 +8,7 @@
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
       lib = pkgs.lib;
-      appVersion = "1.0.1351";
+      appVersion = "2.0.0";
       dotnetVersion = "10_0";
 
       filteredSrc = lib.cleanSourceWith {
