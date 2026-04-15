@@ -79,6 +79,20 @@
             if cfg.settingsFile != null
             then cfg.settingsFile
             else generatedSettingsFile;
+
+          execScript = pkgs.writeShellScript "hass-nowplaying-start" ''
+            set -euo pipefail
+
+            token_file=${lib.escapeShellArg cfg.tokenFile}
+
+            if [ ! -r "$token_file" ]; then
+              echo "hass-nowplaying: token file '$token_file' is not readable" >&2
+              exit 1
+            fi
+
+            export HASSNOWPLAYING_HomeAssistant__Token="$(${pkgs.coreutils}/bin/cat "$token_file")"
+            exec ${lib.getExe cfg.package}
+          '';
         in
         {
           options.services.hass-nowplaying = {
@@ -107,12 +121,13 @@
               '';
             };
 
-            secretSettingsFile = lib.mkOption {
-              type = lib.types.nullOr lib.types.str;
-              default = null;
+            tokenFile = lib.mkOption {
+              type = lib.types.str;
               description = ''
-                Full path to a JSON file containing secret overrides, such as
-                HomeAssistant.Token. This file must not live in the Nix store.
+                Path to a file containing a Home Assistant API token.
+
+                The module reads this file at service start and exports it as the
+                HASSNOWPLAYING_HomeAssistant__Token environment variable.
               '';
             };
 
@@ -162,22 +177,21 @@
               Unit = {
                 Description = "Home Assistant Now Playing Daemon";
                 Wants = [ "network-online.target" ];
-                After = [ "dbus.service" "network-online.target" ];
-                Requires = [ "dbus.service" ];
+                After = [ "graphical-session.target"  "dbus.service" "network-online.target" ];
+                PartOf = [ "graphical-session.target" ];
                 OnFailure = lib.optional cfg.notifyOnFailure "hass-nowplaying-notify.service";
               };
 
               Service = {
-                ExecStart = lib.getExe cfg.package;
+                ExecStart = execScript;
                 Restart = "on-failure";
-                Environment =
-                  [ "HASSNOWPLAYING_APPSETTINGS_PATH=${effectiveSettingsFile}" ]
-                  ++ lib.optional (cfg.secretSettingsFile != null)
-                    "HASSNOWPLAYING_SECRET_APPSETTINGS_PATH=${cfg.secretSettingsFile}";
+                Environment = [
+                  "HASSNOWPLAYING_APPSETTINGS_PATH=${effectiveSettingsFile}"
+                ];
               };
 
               Install = {
-                WantedBy = [ "default.target" ];
+                WantedBy = [ "graphical-session.target" ];
               };
             };
 
