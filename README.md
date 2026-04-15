@@ -178,10 +178,12 @@ Example:
     mediaPlayerEntity = "media_player.sonos_arc";
     mediaArtSize = 0;
 
-    secretSettingsFile = config.sops.secrets.hass-nowplaying-token.path;
+    tokenFile = "path-to-token-file";
   };
 }
 ```
+
+Note that when enabling the service, the secret settings file should only contain the token itsef, without the recommended json structure.
 
 ---
 
