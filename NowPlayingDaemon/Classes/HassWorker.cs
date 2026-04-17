@@ -104,11 +104,13 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
 
         haPlayer
             .StateAllChanges()
-            .Where(e => e.New?.Attributes?.MediaContentId != e.Old?.Attributes?.MediaContentId)
+            .Where(e => HasMetadataChanged(e.Old, e.New))
+            .Select(e => e.Entity)
+            .Throttle(TimeSpan.FromMilliseconds(250))
             .Subscribe(async s =>
             {
-                _logger.LogDebug($"The media content ID of the player has changed.");
-                await UpdateMprisMetadata(s.Entity);
+                _logger.LogDebug("The metadata of the player has changed.");
+                await UpdateMprisMetadata(s);
             });
 
         haPlayer
@@ -260,6 +262,25 @@ public class HassWorker : BackgroundService, IHassNowPlayingDaemon
         _logger.LogInformation($"Now Playing: {artist}: {title}.");
 
         await _mprisPlayer.UpdateMetadata(metadata);
+    }
+
+    private static bool HasMetadataChanged(
+        EntityState<MediaPlayerAttributes>? oldState,
+        EntityState<MediaPlayerAttributes>? newState
+    )
+    {
+        var oldAttributes = oldState?.Attributes;
+        var newAttributes = newState?.Attributes;
+
+        return oldAttributes?.MediaContentId != newAttributes?.MediaContentId
+            || oldAttributes?.MediaTitle != newAttributes?.MediaTitle
+            || oldAttributes?.MediaArtist != newAttributes?.MediaArtist
+            || oldAttributes?.MediaAlbumName != newAttributes?.MediaAlbumName
+            || oldAttributes?.MediaAlbumArtist != newAttributes?.MediaAlbumArtist
+            || oldAttributes?.MediaDuration != newAttributes?.MediaDuration
+            || oldAttributes?.MediaImageUrl != newAttributes?.MediaImageUrl
+            || oldAttributes?.EntityPicture != newAttributes?.EntityPicture
+            || oldAttributes?.EntityPictureLocal != newAttributes?.EntityPictureLocal;
     }
 
     private string GetMediaArtUrl(Entity<MediaPlayerAttributes> haPlayer, int imageSize)
