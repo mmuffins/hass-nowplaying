@@ -241,7 +241,7 @@ jobs:
         path: ${{ github.workspace }}/publish
 
     - name: Create release
-      uses: actions/github-script@v8
+      uses: actions/github-script@v9
       id: create-release
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -260,7 +260,7 @@ jobs:
           core.setOutput("id", newRelease.id)
           
     - name: Upload Release Assets
-      uses: actions/github-script@v8
+      uses: actions/github-script@v9
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
