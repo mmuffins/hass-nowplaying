@@ -114,6 +114,6 @@ jobs:
       run: git push --set-upstream origin nix-flake-update-${{ github.run_number }}-${{ github.run_attempt }}
 
     - name: create pull request
-      run: gh pr create -B main -H "nix-flake-update-${{ github.run_number }}-${{ github.run_attempt }}" --title 'Update nix flake' --body 'Updated nix flake'
+      run: gh pr create -B main -H "nix-flake-update-${{ github.run_number }}-${{ github.run_attempt }}" --title 'Update nix flake' --body 'Updated nix flake' --label 'nix-flake-update'
       env:
           GITHUB_TOKEN: ${{ secrets.PR_CREATION_TOKEN }}
