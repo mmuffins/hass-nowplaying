@@ -116,4 +116,4 @@ jobs:
     - name: create pull request
       run: gh pr create -B main -H "nix-flake-update-${{ github.run_number }}-${{ github.run_attempt }}" --title 'Update nix flake' --body 'Updated nix flake'
       env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PR_CREATION_TOKEN }}
