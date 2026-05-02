@@ -1,4 +1,4 @@
-name: update-nix-flake
+name: Update nix flake
 
 on:
   workflow_dispatch:      
@@ -41,7 +41,7 @@ jobs:
         git config user.name 'github-actions[bot]'
 
     - name: create branch
-      run: git checkout -b "flake-update-${{ github.run_number }}-${{ github.run_attempt }}"
+      run: git checkout -b "nix-flake-update-${{ github.run_number }}-${{ github.run_attempt }}"
 
     - name: check git status
       run: git status
@@ -111,9 +111,9 @@ jobs:
       run: nix build
 
     - name: push branch
-      run: git push --set-upstream origin flake-update-${{ github.run_number }}-${{ github.run_attempt }}
+      run: git push --set-upstream origin nix-flake-update-${{ github.run_number }}-${{ github.run_attempt }}
 
     - name: create pull request
-      run: gh pr create -B main -H "flake-update-${{ github.run_number }}-${{ github.run_attempt }}" --title 'Update nix flake' --body 'Updated nix flake'
+      run: gh pr create -B main -H "nix-flake-update-${{ github.run_number }}-${{ github.run_attempt }}" --title 'Update nix flake' --body 'Updated nix flake'
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
