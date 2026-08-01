@@ -51,7 +51,7 @@ jobs:
         nix_path: nixpkgs=channel:nixos-unstable
 
     - name: Setup .NET Core
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: ${{ env.dotnet_major }}
       
