@@ -23,11 +23,11 @@
     </ItemGroup>
 
     <ItemGroup>      
-      <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.10" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.10" />
-      <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="10.0.10" />
-      <PackageReference Include="NetDaemon.Runtime" Version="26.29.2" />
-      <PackageReference Include="Tmds.DBus" Version="0.94.2" />
-      <PackageReference Include="Tmds.DBus.Protocol" Version="0.94.2" />
+      <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
+      <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="10.0.11" />
+      <PackageReference Include="NetDaemon.Runtime" Version="26.32.0" />
+      <PackageReference Include="Tmds.DBus" Version="0.95.0" />
+      <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.0" />
     </ItemGroup>
 </Project>
